@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import Link from 'next/link';
 import { Fragment } from 'react';
 import { Icon, IconName } from '@/common/icons';
@@ -21,8 +22,10 @@ type BreadcrumbsProps = {
 const CRUMB_MAX_WIDTH = 'max-w-64';
 
 export const Breadcrumbs = ({ items }: BreadcrumbsProps) => {
+	const t = useTranslations();
+
 	return (
-		<nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-sm">
+		<nav aria-label={t('Breadcrumb')} className="flex min-w-0 items-center gap-1 text-sm">
 			{items.map((item, i) => {
 				const isLast = i === items.length - 1;
 

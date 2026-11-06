@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import type { GraphStep } from '@/types/chat';
 import { Icon, IconName } from '@/common/icons';
 import { SqlBlock } from '@/common/SqlBlock';
@@ -29,6 +30,8 @@ const Dot = ({ delay }: { delay: string }) => (
 );
 
 export const ThinkingMessage = ({ steps, liveSql }: ThinkingMessageProps) => {
+	const t = useTranslations();
+
 	const activeStep = [...steps].reverse().find((s) => s.status === 'active');
 	const completedSteps = steps.filter((s) => s.status === 'completed');
 
@@ -47,7 +50,7 @@ export const ThinkingMessage = ({ steps, liveSql }: ThinkingMessageProps) => {
 						<Icon name={IconName.NvidiaLogo} className="h-4 w-4 text-[#76b900]" />
 					</div>
 					<span className="text-xs font-semibold text-body dark:text-zinc-200">
-						Auto Ontology Agent
+						{t('Auto Ontology Agent')}
 					</span>
 				</div>
 
@@ -63,7 +66,7 @@ export const ThinkingMessage = ({ steps, liveSql }: ThinkingMessageProps) => {
 									className="mt-0.5 h-3 w-3 shrink-0 text-[#76b900]"
 								/>
 								<span>
-									<span>{step.label}</span>
+									<span>{t(step.label)}</span>
 									{step.thought && (
 										<span className="block text-secondary dark:text-zinc-500">
 											{step.thought}
@@ -78,7 +81,7 @@ export const ThinkingMessage = ({ steps, liveSql }: ThinkingMessageProps) => {
 				<div className="flex w-full flex-col items-start gap-2">
 					{activeStep && (
 						<span className="text-sm text-heading dark:text-zinc-100">
-							<span>{activeStep.label}</span>
+							<span>{t(activeStep.label)}</span>
 							{activeStep.thought && (
 								<span className="block text-xs font-normal text-secondary dark:text-zinc-400">
 									{activeStep.thought}

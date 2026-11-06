@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Spinner } from '@nvidia/foundations-react-core';
@@ -59,6 +60,8 @@ export const InfiniteScroll = ({
 	className,
 	children,
 }: InfiniteScrollProps) => {
+	const t = useTranslations();
+
 	const rootRef = useRef<HTMLDivElement>(null);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	// Held in a ref so a caller passing an inline callback doesn't tear down and
@@ -96,7 +99,7 @@ export const InfiniteScroll = ({
 			{hasMore && error == null && <div ref={sentinelRef} aria-hidden className="h-px" />}
 			{isLoading && (
 				<div className="flex justify-center py-4">
-					<Spinner aria-label="Loading more" className="h-6 w-6" />
+					<Spinner aria-label={t('Loading more')} className="h-6 w-6" />
 				</div>
 			)}
 			{error != null && (
@@ -108,7 +111,7 @@ export const InfiniteScroll = ({
 						type="button"
 						onClick={onLoadMore}
 					>
-						Retry
+						{t('Retry')}
 					</Button>
 				</div>
 			)}

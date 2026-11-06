@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -267,6 +268,8 @@ function ColumnBlock({
 	selectedId?: string;
 	pathBase: string;
 }) {
+	const t = useTranslations();
+
 	return (
 		<div>
 			<Row
@@ -274,7 +277,7 @@ function ColumnBlock({
 				hasChildren={false}
 				name={column.column_name}
 				icon={catalogNodeInfo[DataModels.COLUMN].icon}
-				title={catalogNodeInfo[DataModels.COLUMN].title}
+				title={t(catalogNodeInfo[DataModels.COLUMN].title)}
 				selected={selectedId === columnFocusPath}
 				href={catalogPathFromFocusId(columnFocusPath, pathBase)}
 			/>
@@ -301,6 +304,8 @@ function TableBlock({
 	pathBase: string;
 	onLoadColumns: (tableCompoundId: string) => void;
 }) {
+	const t = useTranslations();
+
 	const router = useRouter();
 	const focusInsideTable = focusIsInsideSubtree(tableFocusPath, selectedId);
 	const [open, setOpen] = useOpenBranch(tableFocusPath, focusInsideTable, selectedId, false);
@@ -335,7 +340,7 @@ function TableBlock({
 				loading={loading}
 				name={table.name}
 				icon={tableInfo.icon}
-				title={tableInfo.title}
+				title={t(tableInfo.title)}
 				selected={selectedId === tableFocusPath}
 				href={hasChildren ? undefined : catalogPathFromFocusId(tableFocusPath, pathBase)}
 				onActivateBranch={hasChildren ? activateTable : undefined}
@@ -374,6 +379,8 @@ function SchemaBlock({
 	onLoadColumns: (tableCompoundId: string) => void;
 	onLoadTables: (schemaCompoundId: string) => Promise<void>;
 }) {
+	const t = useTranslations();
+
 	const router = useRouter();
 	const schemaFocusPath = `${databaseId}|${schema.id}`;
 	const schemaLoadRef = schemaFocusPath;
@@ -417,7 +424,7 @@ function SchemaBlock({
 				loading={loadingTables}
 				name={schema.schema_name}
 				icon={catalogNodeInfo[DataModels.SCHEMA].icon}
-				title={catalogNodeInfo[DataModels.SCHEMA].title}
+				title={t(catalogNodeInfo[DataModels.SCHEMA].title)}
 				selected={selectedId === schemaFocusPath}
 				href={hasChildren ? undefined : catalogPathFromFocusId(schemaFocusPath, pathBase)}
 				onActivateBranch={hasChildren ? activateSchemaBranch : undefined}
@@ -459,6 +466,8 @@ function DatabaseBlock({
 	onLoadSchemas: (dbId: string) => Promise<void>;
 	onLoadTables: (schemaCompoundId: string) => Promise<void>;
 }) {
+	const t = useTranslations();
+
 	const router = useRouter();
 	const focusInsideDatabase = focusIsInsideSubtree(database.id, selectedId);
 	const [open, setOpen] = useOpenBranch(database.id, focusInsideDatabase, selectedId, false);
@@ -500,7 +509,7 @@ function DatabaseBlock({
 				loading={loadingSchemas}
 				name={database.name}
 				icon={catalogNodeInfo[DataModels.DB].icon}
-				title={catalogNodeInfo[DataModels.DB].title}
+				title={t(catalogNodeInfo[DataModels.DB].title)}
 				selected={selectedId === database.id}
 				href={undefined}
 				onActivateBranch={activateDatabaseBranch}
@@ -531,6 +540,8 @@ export function DataTree({
 	className = '',
 	onTreeDataUpdated,
 }: DataTreeProps) {
+	const t = useTranslations();
+
 	const [databases, setDatabases] = useState<Database[]>(initialDatabases);
 	const catalogFpRef = useRef('');
 
@@ -587,7 +598,7 @@ export function DataTree({
 	return (
 		<nav
 			className={`flex min-h-0 flex-1 flex-col gap-y-1 overflow-y-auto px-3 py-2 sm:px-4 ${className}`}
-			aria-label="Datasource tree"
+			aria-label={t('Datasource tree')}
 		>
 			{databases.map((database) => (
 				<DatabaseBlock

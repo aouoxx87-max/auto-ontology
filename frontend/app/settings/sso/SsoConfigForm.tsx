@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useState } from 'react';
 import { authApi, type SsoProvider } from '@/api/auth';
 import { Button } from '@/common/Button';
@@ -19,6 +20,8 @@ const inputClass =
 	'w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-body outline-none transition-colors placeholder:text-secondary focus:border-[#76b900] focus:ring-2 focus:ring-[#76b900]/30 disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-disabled dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:disabled:bg-zinc-800/50 dark:disabled:text-zinc-400';
 
 export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvider[] }) => {
+	const t = useTranslations();
+
 	// Seeded from the server (see page.tsx) so the correct view renders on first
 	// paint; re-fetched after register/delete to stay in sync.
 	const [providers, setProviders] = useState<SsoProvider[]>(initialProviders);
@@ -54,7 +57,7 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 		});
 
 		if (result.error) {
-			setError(result.error.message ?? 'Failed to save the SSO provider.');
+			setError(result.error.message ?? t('Failed to save the SSO provider.'));
 			setSubmitting(false);
 			return;
 		}
@@ -68,7 +71,10 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 	const handleDelete = async (id: string) => {
 		if (
 			!window.confirm(
-				`Delete SSO provider "${id}"? Users will no longer be able to sign in with it.`,
+				t(
+					'Delete SSO provider "{name}"? Users will no longer be able to sign in with it.',
+					{ name: id },
+				),
 			)
 		) {
 			return;
@@ -81,12 +87,12 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 		const result = await authApi.deleteProvider(id);
 
 		if (result.error) {
-			setError(result.error.message ?? 'Failed to delete the SSO provider.');
+			setError(result.error.message ?? t('Failed to delete the SSO provider.'));
 			setDeletingId(null);
 			return;
 		}
 
-		setMessage(`SSO provider "${id}" deleted.`);
+		setMessage(t('SSO provider "{name}" deleted.', { name: id }));
 		setDeletingId(null);
 		setProviders(await authApi.listProviders());
 	};
@@ -98,11 +104,12 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 		<div className="h-full overflow-auto p-6">
 			<div className="mx-auto max-w-xl">
 				<h1 className="mb-1 text-lg font-semibold text-heading dark:text-zinc-100">
-					Single Sign-On (OIDC)
+					{t('Single Sign-On (OIDC)')}
 				</h1>
 				<p className="mb-4 text-xs text-secondary">
-					Configure a single OpenID Connect provider. Endpoints are discovered from the
-					issuer. The client secret is stored securely and never shown again.
+					{t(
+						'Configure a single OpenID Connect provider. Endpoints are discovered from the issuer. The client secret is stored securely and never shown again.',
+					)}
 				</p>
 
 				<form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -111,7 +118,7 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 							htmlFor="issuer"
 							className="text-xs font-medium text-body dark:text-zinc-400"
 						>
-							Issuer URL
+							{t('Issuer URL')}
 						</label>
 						<input
 							id="issuer"
@@ -129,7 +136,7 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 							htmlFor="clientId"
 							className="text-xs font-medium text-body dark:text-zinc-400"
 						>
-							Client ID
+							{t('Client ID')}
 						</label>
 						<input
 							id="clientId"
@@ -146,7 +153,7 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 							htmlFor="clientSecret"
 							className="text-xs font-medium text-body dark:text-zinc-400"
 						>
-							Client Secret
+							{t('Client Secret')}
 						</label>
 						<input
 							id="clientSecret"
@@ -171,8 +178,8 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 								disabled={deletingId === provider.provider_id}
 							>
 								{deletingId === provider.provider_id
-									? 'Deleting…'
-									: 'Delete provider'}
+									? t('Deleting…')
+									: t('Delete provider')}
 							</Button>
 						</div>
 					) : (
@@ -183,7 +190,7 @@ export const SsoConfigForm = ({ initialProviders }: { initialProviders: SsoProvi
 								type="submit"
 								disabled={submitting}
 							>
-								{submitting ? 'Saving…' : 'Save provider'}
+								{submitting ? t('Saving…') : t('Save provider')}
 							</Button>
 						</div>
 					)}

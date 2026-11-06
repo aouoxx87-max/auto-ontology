@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { Locale } from '@/types/i18n';
 import type { ValueFormat } from './types';
 
 /**
@@ -45,8 +46,8 @@ export function ticks(min: number, max: number, count = 4): number[] {
 	return Array.from({ length: count + 1 }, (_, i) => min + step * i);
 }
 
-function localeNumber(value: number, maxFractionDigits = 2): string {
-	return value.toLocaleString('en-US', {
+function localeNumber(value: number, locale: Locale, maxFractionDigits = 2): string {
+	return value.toLocaleString(locale, {
 		maximumFractionDigits: Number.isInteger(value) ? 0 : maxFractionDigits,
 	});
 }
@@ -58,18 +59,27 @@ function oneDecimal(value: number): string {
 }
 
 /** 11463 -> "11.5K", 1_200_000 -> "1.2M", 2e9 -> "2B"; < 1000 falls back to a plain number. */
-export function compactNumber(value: number): string {
+export function compactNumber(value: number, locale: Locale = 'en'): string {
 	if (!Number.isFinite(value)) return '–';
+	if (locale === 'zh-CN')
+		return new Intl.NumberFormat(locale, {
+			notation: 'compact',
+			maximumFractionDigits: 1,
+		}).format(value);
 	const abs = Math.abs(value);
 	const sign = value < 0 ? '-' : '';
 	if (abs >= 1e9) return `${sign}${oneDecimal(abs / 1e9)}B`;
 	if (abs >= 1e6) return `${sign}${oneDecimal(abs / 1e6)}M`;
 	if (abs >= 1e3) return `${sign}${oneDecimal(abs / 1e3)}K`;
-	return localeNumber(value);
+	return localeNumber(value, locale);
 }
 
 /** Format a value for an axis tick / label, per the spec's `y.format` (compact for space). */
-export function formatValue(value: number, format: ValueFormat = 'number'): string {
+export function formatValue(
+	value: number,
+	format: ValueFormat = 'number',
+	locale: Locale = 'en',
+): string {
 	if (!Number.isFinite(value)) return '–';
 	switch (format) {
 		case 'percent': {
@@ -77,11 +87,11 @@ export function formatValue(value: number, format: ValueFormat = 'number'): stri
 			return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`;
 		}
 		case 'compact':
-			return compactNumber(value);
+			return compactNumber(value, locale);
 		case 'currency':
-			return `$${compactNumber(value)}`;
+			return `$${compactNumber(value, locale)}`;
 		default:
-			return localeNumber(value);
+			return localeNumber(value, locale);
 	}
 }
 
@@ -90,22 +100,30 @@ export function formatValue(value: number, format: ValueFormat = 'number'): stri
  * the axis gutter ("2,000,000,000" -> "2B"); every other format defers to
  * {@link formatValue} (currency already compacts, percent stays short).
  */
-export function formatTick(value: number, format: ValueFormat = 'number'): string {
-	if (format === 'number' && Math.abs(value) >= 10000) return compactNumber(value);
-	return formatValue(value, format);
+export function formatTick(
+	value: number,
+	format: ValueFormat = 'number',
+	locale: Locale = 'en',
+): string {
+	if (format === 'number' && Math.abs(value) >= 10000) return compactNumber(value, locale);
+	return formatValue(value, format, locale);
 }
 
 /** Format the exact value (never abbreviated) for hover tooltips, in the best human-readable form. */
-export function formatValueFull(value: number, format: ValueFormat = 'number'): string {
+export function formatValueFull(
+	value: number,
+	format: ValueFormat = 'number',
+	locale: Locale = 'en',
+): string {
 	if (!Number.isFinite(value)) return '–';
 	switch (format) {
 		case 'percent': {
 			const pct = value * 100;
-			return `${pct.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
+			return `${pct.toLocaleString(locale, { maximumFractionDigits: 2 })}%`;
 		}
 		case 'currency':
-			return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+			return value.toLocaleString(locale, { style: 'currency', currency: 'USD' });
 		default:
-			return localeNumber(value);
+			return localeNumber(value, locale);
 	}
 }

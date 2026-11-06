@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { Button } from '@/common/Button';
 import { Size, ButtonTheme } from '@/enums/button';
@@ -29,8 +30,8 @@ export const ConfirmModal = ({
 	open,
 	title,
 	message,
-	confirmLabel = 'Delete',
-	cancelLabel = 'Cancel',
+	confirmLabel: confirmLabelProp,
+	cancelLabel: cancelLabelProp,
 	onConfirm,
 	onCancel,
 	confirming = false,
@@ -38,6 +39,10 @@ export const ConfirmModal = ({
 	tone = 'danger',
 	className = 'w-full max-w-sm',
 }: ConfirmModalProps) => {
+	const t = useTranslations();
+	const confirmLabel = confirmLabelProp ?? t('Delete');
+	const cancelLabel = cancelLabelProp ?? t('Cancel');
+
 	const cancelRef = useRef<HTMLButtonElement>(null);
 
 	useEffect(() => {
@@ -54,7 +59,7 @@ export const ConfirmModal = ({
 					theme={ButtonTheme.Icon}
 					size={Size.SMALL}
 					iconOnly
-					aria-label="Close"
+					aria-label={t('Close')}
 				>
 					<svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
 						<path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />

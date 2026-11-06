@@ -2,6 +2,9 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+'use client';
+
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { Icon, IconName } from '@/common/icons';
 import { CertificationStatus } from '@/enums/certification';
 
@@ -53,7 +56,9 @@ export const CertificationBadge = ({
 	focusable = true,
 	className = '',
 }: CertificationBadgeProps) => {
-	const title = CERTIFICATION_LABEL[status];
+	const t = useTranslations();
+
+	const title = t(CERTIFICATION_LABEL[status]);
 
 	if (iconOnly) {
 		if (decorative) {

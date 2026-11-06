@@ -85,6 +85,13 @@ setup is to fill in `DEFAULT_MODELS_*` and override per-triplet fields only wher
 they differ (e.g. `EMBED_MODEL`, `NON_REASONING_MODEL`). `*_API_KEY` also falls
 back to the legacy `NVIDIA_API_KEY` for backward compatibility.
 
+## Language support
+
+The Web UI supports English and Simplified Chinese. Choose a language in the top-right selector; the choice persists in your browser. First visits use your browser's language preference, with English as the fallback.
+
+- [项目架构（简体中文）](./docs/architecture.zh-CN.md)
+- [国际化维护说明（简体中文）](./docs/internationalization.zh-CN.md)
+
 ## Quickstart
 
 This runs Auto-Ontology with Docker Compose against Wide World Importers,

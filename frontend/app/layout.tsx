@@ -22,6 +22,9 @@ import { Role } from '@/enums/auth';
 import { connectionQueries } from '@/lib/queries/connections';
 import { tagQueries } from '@/lib/queries/tags';
 import { zoneQueries } from '@/lib/queries/zones';
+import { getLocale } from '@/i18n/server';
+import { LocaleProvider } from '@/i18n/LocaleProvider';
+import { LanguageSwitcher } from '@/i18n/LanguageSwitcher';
 import './globals.css';
 
 const isLoginOrOauthPath = (pathname: string): boolean =>
@@ -91,7 +94,7 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const session = await getCurrentSession();
+	const [session, locale] = await Promise.all([getCurrentSession(), getLocale()]);
 	const isAdmin = session?.user.role === Role.Admin;
 	// Injected at runtime by the Helm chart from the chart version (.Chart.Version).
 	const appVersion = process.env.APP_VERSION;
@@ -102,30 +105,37 @@ export default async function RootLayout({
 
 	return (
 		<html
-			lang="en"
+			lang={locale}
 			className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
 		>
 			<body className="flex h-full flex-col bg-white text-heading dark:bg-zinc-950 dark:text-zinc-100">
-				<QueryProvider>
-					<TooltipProvider openDelayDuration={400} skipDelayDuration={0}>
-						{showAppChrome ? (
-							// Only the signed-in app reads the shared lists; the login
-							// and consent screens have no picker to fill and no session
-							// to read them with.
-							<HydrationBoundary state={prefetchSharedData(userId)}>
-								<BreadcrumbProvider>
-									<AppTopBar version={appVersion} />
-									<div className="flex min-h-0 flex-1">
-										<NavRail isAdmin={isAdmin} />
-										<div className="min-w-0 flex-1">{children}</div>
+				<LocaleProvider locale={locale}>
+					<QueryProvider>
+						<TooltipProvider openDelayDuration={400} skipDelayDuration={0}>
+							{showAppChrome ? (
+								// Only the signed-in app reads the shared lists; the login
+								// and consent screens have no picker to fill and no session
+								// to read them with.
+								<HydrationBoundary state={prefetchSharedData(userId)}>
+									<BreadcrumbProvider>
+										<AppTopBar version={appVersion} />
+										<div className="flex min-h-0 flex-1">
+											<NavRail isAdmin={isAdmin} />
+											<div className="min-w-0 flex-1">{children}</div>
+										</div>
+									</BreadcrumbProvider>
+								</HydrationBoundary>
+							) : (
+								<>
+									<div className="fixed right-4 top-4 z-50">
+										<LanguageSwitcher />
 									</div>
-								</BreadcrumbProvider>
-							</HydrationBoundary>
-						) : (
-							children
-						)}
-					</TooltipProvider>
-				</QueryProvider>
+									{children}
+								</>
+							)}
+						</TooltipProvider>
+					</QueryProvider>
+				</LocaleProvider>
 			</body>
 		</html>
 	);

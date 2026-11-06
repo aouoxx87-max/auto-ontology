@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { invitationsApi } from '@/api/invitations';
@@ -26,6 +27,8 @@ type InviteSetPasswordProps = {
 };
 
 export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps) => {
+	const t = useTranslations();
+
 	const router = useRouter();
 	const [password, setPassword] = useState('');
 	const [confirm, setConfirm] = useState('');
@@ -36,15 +39,19 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 	const handleSubmit = async (event: React.FormEvent) => {
 		event.preventDefault();
 		if (password !== confirm) {
-			setError('Passwords do not match.');
+			setError(t('Passwords do not match.'));
 			return;
 		}
 		if (password.length < MIN_PASSWORD_LENGTH) {
-			setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+			setError(
+				t('Password must be at least {count} characters.', { count: MIN_PASSWORD_LENGTH }),
+			);
 			return;
 		}
 		if (password.length > MAX_PASSWORD_LENGTH) {
-			setError(`Password must be at most ${MAX_PASSWORD_LENGTH} characters.`);
+			setError(
+				t('Password must be at most {count} characters.', { count: MAX_PASSWORD_LENGTH }),
+			);
 			return;
 		}
 
@@ -52,7 +59,7 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 		setError(null);
 		const accepted = await invitationsApi.accept(token, password);
 		if (accepted.error) {
-			setError(accepted.message ?? 'Could not accept the invitation.');
+			setError(accepted.message ?? t('Could not accept the invitation.'));
 			setSubmitting(false);
 			return;
 		}
@@ -81,8 +88,8 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 					<div className="flex w-full flex-col gap-4">
 						<p className="text-sm text-body dark:text-zinc-300">
 							{kind === InvitationKind.Reset
-								? 'Password updated. Sign in to continue.'
-								: 'Account created. Sign in to continue.'}
+								? t('Password updated. Sign in to continue.')
+								: t('Account created. Sign in to continue.')}
 						</p>
 						<Button
 							theme={ButtonTheme.Primary}
@@ -90,7 +97,7 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 							type="button"
 							onClick={() => router.push('/login')}
 						>
-							Sign in
+							{t('Sign in')}
 						</Button>
 					</div>
 				) : (
@@ -100,17 +107,17 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 					>
 						<p className="text-xs text-secondary dark:text-zinc-400">
 							{kind === InvitationKind.Reset
-								? 'Set a new password for '
-								: 'Set a password for '}
+								? t('Set a new password for ')
+								: t('Set a password for ')}
 							<span className="font-medium text-body">{email}</span>
-							{kind === InvitationKind.Reset ? '.' : ' to finish joining.'}
+							{kind === InvitationKind.Reset ? '.' : t(' to finish joining.')}
 						</p>
 						<div className="flex flex-col gap-1.5">
 							<label
 								htmlFor="invite-email"
 								className="text-xs font-medium text-body dark:text-zinc-400"
 							>
-								Email
+								{t('Email')}
 							</label>
 							<input
 								id="invite-email"
@@ -125,7 +132,7 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 								htmlFor="invite-password"
 								className="text-xs font-medium text-body dark:text-zinc-400"
 							>
-								Password
+								{t('Password')}
 							</label>
 							<input
 								id="invite-password"
@@ -144,7 +151,7 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 								htmlFor="invite-password-confirm"
 								className="text-xs font-medium text-body dark:text-zinc-400"
 							>
-								Confirm password
+								{t('Confirm password')}
 							</label>
 							<input
 								id="invite-password-confirm"
@@ -166,10 +173,10 @@ export const InviteSetPassword = ({ token, email, kind }: InviteSetPasswordProps
 							disabled={submitting}
 						>
 							{submitting
-								? 'Saving…'
+								? t('Saving…')
 								: kind === InvitationKind.Reset
-									? 'Save password'
-									: 'Create password'}
+									? t('Save password')
+									: t('Create password')}
 						</Button>
 					</form>
 				)}

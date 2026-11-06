@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -99,6 +100,8 @@ const focusedTagType = (focusId: string | null): TagItemType | null => {
 };
 
 export function DataWorkspaceView() {
+	const t = useTranslations();
+
 	// Where the tag picker's options are read from — shared with every other
 	// page that offers them, so walking the tree doesn't re-read the
 	// vocabulary at each table and column.
@@ -131,7 +134,7 @@ export function DataWorkspaceView() {
 		try {
 			const res = await datasources.getDBs();
 			if (res.error) {
-				setLoadError(res.message ?? 'Failed to load databases');
+				setLoadError(res.message ?? t('Failed to load databases'));
 				return;
 			}
 			const next = res.data ?? [];
@@ -150,7 +153,7 @@ export function DataWorkspaceView() {
 			inFlightRef.current = false;
 			setLoading(false);
 		}
-	}, []);
+	}, [t]);
 
 	useEffect(() => {
 		void fetchDatabases();
@@ -244,9 +247,10 @@ export function DataWorkspaceView() {
 				databasesRef.current,
 				tagOptions,
 				ownerDirectory,
+				t,
 			);
 		},
-		[hydrateBranchForFocus, queryClient],
+		[hydrateBranchForFocus, queryClient, t],
 	);
 
 	const focusedEntityId = useMemo(() => {
@@ -311,7 +315,7 @@ export function DataWorkspaceView() {
 	const handleSave = useCallback(
 		async (edits: Record<string, ComposerEditValue>) => {
 			if (focusedEntityId == null) {
-				return { error: true, message: 'No catalog node is selected' };
+				return { error: true, message: t('No catalog node is selected') };
 			}
 			const { [TAGS_SECTION_ID]: tagEdit, ...nodeEdits } = edits;
 
@@ -320,7 +324,7 @@ export function DataWorkspaceView() {
 				if (nodePatch.owner_id === '') nodePatch.owner_id = null;
 				const res = await datasources.updateNode(focusedEntityId, nodePatch);
 				if (res.error) {
-					return { error: true, message: res.message ?? 'Failed to save changes' };
+					return { error: true, message: res.message ?? t('Failed to save changes') };
 				}
 				applyNodePatch(focusedEntityId, nodePatch as CatalogNodePatch);
 			}
@@ -351,7 +355,7 @@ export function DataWorkspaceView() {
 
 			return { error: false };
 		},
-		[applyNodePatch, focusedEntityId, treeFocusId],
+		[applyNodePatch, focusedEntityId, t, treeFocusId],
 	);
 
 	// Certification saves immediately, independent of the description Save
@@ -364,13 +368,13 @@ export function DataWorkspaceView() {
 				description_certified: certified,
 			});
 			if (res.error) {
-				setCertError(res.message ?? 'Failed to update certification');
+				setCertError(res.message ?? t('Failed to update certification'));
 				return;
 			}
 			setCertError(null);
 			applyNodePatch(focusedEntityId, { description_certified: certified });
 		},
-		[applyNodePatch, focusedEntityId],
+		[applyNodePatch, focusedEntityId, t],
 	);
 
 	const handleChildCertificationChange = useCallback(
@@ -379,13 +383,13 @@ export function DataWorkspaceView() {
 				description_certified: certified,
 			});
 			if (res.error) {
-				setCertError(res.message ?? 'Failed to update certification');
+				setCertError(res.message ?? t('Failed to update certification'));
 				return;
 			}
 			setCertError(null);
 			applyNodePatch(rowId, { description_certified: certified });
 		},
-		[applyNodePatch],
+		[applyNodePatch, t],
 	);
 
 	const catalogActor = session?.user
@@ -416,7 +420,7 @@ export function DataWorkspaceView() {
 						⚠
 					</div>
 					<h2 className="text-lg font-semibold tracking-tight text-red-800 dark:text-red-300">
-						Couldn&apos;t load databases
+						{t("Couldn't load databases")}
 					</h2>
 					<pre className="mt-4 max-w-full overflow-x-auto rounded-lg border border-red-100 bg-red-50/80 p-3 text-left text-xs text-red-900/80 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
 						{loadError}
@@ -428,7 +432,7 @@ export function DataWorkspaceView() {
 
 	if (loading && databases.length === 0) {
 		return (
-			<div className="flex h-full flex-1" role="status" aria-label="Loading databases">
+			<div className="flex h-full flex-1" role="status" aria-label={t('Loading databases')}>
 				<aside className="w-72 border-r border-zinc-200 p-4 dark:border-zinc-800">
 					<SkeletonBlock className="mb-5 h-6 w-24" />
 					<SkeletonRows rows={8} />
@@ -446,16 +450,16 @@ export function DataWorkspaceView() {
 			<EmptyState
 				variant={EmptyStateVariant.Borderless}
 				icon={IconName.Database}
-				title="No Databases Found"
+				title={t('No Databases Found')}
 			/>
 		);
 	}
 
 	return (
 		<BackPanelLayout
-			panelAriaLabel="Datasource tree"
-			expandAriaLabel="Expand explorer"
-			collapseAriaLabel="Collapse explorer"
+			panelAriaLabel={t('Datasource tree')}
+			expandAriaLabel={t('Expand explorer')}
+			collapseAriaLabel={t('Collapse explorer')}
 			panel={
 				<DataTree
 					key="data-catalog-tree"

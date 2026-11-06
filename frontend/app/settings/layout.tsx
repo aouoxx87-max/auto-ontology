@@ -2,13 +2,15 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import { getTranslations } from '@/i18n/server';
 import type { Metadata } from 'next';
 import { SettingsPanelLayout } from '@/components/settings/SettingsPanelLayout';
 import { requireAdmin } from '@/auth/auth-guards';
 import { readConnectionsEnvSource } from '@/lib/server/connections';
 
-export const metadata: Metadata = {
-	title: 'Settings',
+export const generateMetadata = async (): Promise<Metadata> => {
+	const t = await getTranslations();
+	return { title: t('Settings') };
 };
 
 // The entire Settings section (Connections, Zones, Users, SSO) is admin-only.

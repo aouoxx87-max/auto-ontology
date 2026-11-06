@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
@@ -61,6 +62,8 @@ const getLoadingSkeletonCount = () =>
 	);
 
 export const AnalysisView = () => {
+	const t = useTranslations();
+
 	const searchParams = useSearchParams();
 	const focusId = searchParams.get('focus');
 	const urlMode: AnalysisMode = searchParams.get('mode') === 'pql' ? 'pql' : 'sql';
@@ -115,7 +118,7 @@ export const AnalysisView = () => {
 			};
 			if (isPql) {
 				const res = await pqlAnalyses.list(params);
-				if (res.error) return { error: res.message ?? 'Failed to load PQL analyses' };
+				if (res.error) return { error: res.message ?? t('Failed to load PQL analyses') };
 				setHasLoaded(true);
 				return {
 					items: (res.data ?? []).map((a) => ({
@@ -128,7 +131,7 @@ export const AnalysisView = () => {
 				};
 			}
 			const res = await analyses.list(params);
-			if (res.error) return { error: res.message ?? 'Failed to load custom analyses' };
+			if (res.error) return { error: res.message ?? t('Failed to load custom analyses') };
 			setHasLoaded(true);
 			return {
 				items: (res.data ?? []).map((a) => ({
@@ -140,7 +143,7 @@ export const AnalysisView = () => {
 				total: res.total ?? 0,
 			};
 		},
-		[debouncedSearchQuery, isPql],
+		[debouncedSearchQuery, isPql, t],
 	);
 
 	const {
@@ -229,7 +232,7 @@ export const AnalysisView = () => {
 			: await analyses.delete(deletingItem.id);
 		setDeleting(false);
 		if (res.error) {
-			setDeleteError(res.message ?? `Failed to delete ${MODE_LABEL[mode]} analysis`);
+			setDeleteError(res.message ?? `Failed to delete ${t(MODE_LABEL[mode])} analysis`);
 			return;
 		}
 		// Not a client-side filter: the next page is read from the count of
@@ -259,12 +262,12 @@ export const AnalysisView = () => {
 		const res = await analyses.validate(trimmedCode);
 		setValidating(false);
 		if (res.error) {
-			setValidationMessage(res.message ?? 'SQL validation failed');
+			setValidationMessage(res.message ?? t('SQL validation failed'));
 			return;
 		}
 		const isValid = res.data.valid === true;
 		setSqlValidated(isValid);
-		setValidationMessage(isValid ? 'SQL is valid.' : 'SQL validation failed');
+		setValidationMessage(isValid ? t('SQL is valid.') : t('SQL validation failed'));
 	};
 
 	const handleSubmit = async () => {
@@ -323,8 +326,8 @@ export const AnalysisView = () => {
 			setSubmitError(
 				failure ??
 					(editingId !== null
-						? `Failed to update ${MODE_LABEL[mode]} analysis`
-						: `Failed to create ${MODE_LABEL[mode]} analysis`),
+						? `Failed to update ${t(MODE_LABEL[mode])} analysis`
+						: `Failed to create ${t(MODE_LABEL[mode])} analysis`),
 			);
 			return;
 		}
@@ -348,7 +351,7 @@ export const AnalysisView = () => {
 			<header className="flex items-center gap-3 border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
 				<Icon name={IconName.ChartBar} className="h-5 w-5 text-body dark:text-zinc-300" />
 				<h1 className="text-lg font-semibold tracking-tight text-heading dark:text-zinc-100">
-					{isPql ? 'PQL Analyses' : 'Custom Analyses'}
+					{isPql ? t('PQL Analyses') : t('Custom Analyses')}
 				</h1>
 				<div className="ml-4 flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
 					<SelectButton
@@ -375,7 +378,7 @@ export const AnalysisView = () => {
 						shadow
 					>
 						<Icon name={IconName.Plus} className="h-4 w-4" />
-						Create New {MODE_LABEL[mode]} Analysis
+						{t('Create New')} {t(MODE_LABEL[mode])} {t('Analysis')}
 					</Button>
 				</div>
 			</header>
@@ -391,8 +394,8 @@ export const AnalysisView = () => {
 					<SearchInput
 						value={searchQuery}
 						onChange={setSearchQuery}
-						placeholder={`Search ${MODE_LABEL[mode]} Analyses…`}
-						aria-label={`Search ${MODE_LABEL[mode]} analyses`}
+						placeholder={`Search ${t(MODE_LABEL[mode])} Analyses…`}
+						aria-label={`Search ${t(MODE_LABEL[mode])} analyses`}
 						className="mb-6 w-full"
 					/>
 				)}
@@ -401,7 +404,7 @@ export const AnalysisView = () => {
 					<div
 						className="flex min-h-[calc(100dvh-7rem)] flex-col gap-4"
 						role="status"
-						aria-label={`Loading ${MODE_LABEL[mode]} analyses`}
+						aria-label={`Loading ${t(MODE_LABEL[mode])} analyses`}
 					>
 						{Array.from({ length: loadingSkeletonCount }).map((_, index) => (
 							<SkeletonCard key={index} rows={4} />
@@ -412,7 +415,7 @@ export const AnalysisView = () => {
 				{!loading && error != null && items.length === 0 && (
 					<div className="mx-auto max-w-lg rounded-2xl border border-red-200/80 bg-white/90 px-8 py-10 text-center shadow-xl shadow-red-100/50 dark:border-red-900/50 dark:bg-zinc-950/80 dark:shadow-none">
 						<h2 className="text-lg font-semibold tracking-tight text-red-800 dark:text-red-300">
-							Couldn&apos;t load {MODE_LABEL[mode]} analyses
+							{t("Couldn't load")} {t(MODE_LABEL[mode])} {t('analyses')}
 						</h2>
 						<pre className="mt-4 max-w-full overflow-x-auto rounded-lg border border-red-100 bg-red-50/80 p-3 text-left text-xs text-red-900/80 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-200">
 							{error}
@@ -427,7 +430,7 @@ export const AnalysisView = () => {
 								type="button"
 								onClick={reload}
 							>
-								Retry
+								{t('Retry')}
 							</Button>
 						</div>
 					</div>
@@ -438,8 +441,8 @@ export const AnalysisView = () => {
 						variant={EmptyStateVariant.Borderless}
 						title={
 							debouncedSearchQuery
-								? `No ${MODE_LABEL[mode]} Analyses Match Your Search`
-								: `No ${MODE_LABEL[mode]} Analyses Created Yet`
+								? `No ${t(MODE_LABEL[mode])} Analyses Match Your Search`
+								: `No ${t(MODE_LABEL[mode])} Analyses Created Yet`
 						}
 					/>
 				)}
@@ -473,7 +476,7 @@ export const AnalysisView = () => {
 										className="shrink-0"
 										items={[
 											{
-												label: 'Edit',
+												label: t('Edit'),
 												icon: (
 													<Icon
 														name={IconName.Pencil}
@@ -483,7 +486,7 @@ export const AnalysisView = () => {
 												onClick: () => openEditModal(a),
 											},
 											{
-												label: 'Delete',
+												label: t('Delete'),
 												icon: (
 													<Icon
 														name={IconName.Trash}
@@ -501,7 +504,9 @@ export const AnalysisView = () => {
 												iconOnly
 												type="button"
 												onClick={toggle}
-												aria-label={`Actions for ${a.name}`}
+												aria-label={t('Actions for {name}', {
+													name: a.name,
+												})}
 											>
 												<Icon
 													name={IconName.DotsVertical}
@@ -524,7 +529,7 @@ export const AnalysisView = () => {
 								{a.code.trim() !== '' && (
 									<SqlBlock
 										sql={a.code}
-										label={MODE_LABEL[mode]}
+										label={t(MODE_LABEL[mode])}
 										className="mt-4"
 									/>
 								)}
@@ -539,39 +544,39 @@ export const AnalysisView = () => {
 				onClose={handleClose}
 				title={
 					isEditing
-						? `Edit ${MODE_LABEL[mode]} Analysis`
-						: `Create New ${MODE_LABEL[mode]} Analysis`
+						? `Edit ${t(MODE_LABEL[mode])} Analysis`
+						: `Create New ${t(MODE_LABEL[mode])} Analysis`
 				}
-				submitLabel={submitting ? 'Saving…' : 'Save'}
+				submitLabel={submitting ? t('Saving…') : t('Save')}
 				onSubmit={handleSubmit}
 				canSubmit={canSubmit}
 				secondaryAction={
 					isPql
 						? undefined
 						: {
-								label: validating ? 'Validating…' : 'Validate SQL',
+								label: validating ? t('Validating…') : t('Validate SQL'),
 								onClick: handleValidateSql,
 								disabled: trimmedCode.length === 0 || validating,
 							}
 				}
 			>
 				<div>
-					<label className={FIELD_LABEL_CLASSNAME}>Name</label>
+					<label className={FIELD_LABEL_CLASSNAME}>{t('Name')}</label>
 					<input
 						type="text"
 						value={name}
 						onChange={(e) => setName(e.target.value)}
-						placeholder={`${MODE_LABEL[mode]} Analysis Name`}
+						placeholder={`${t(MODE_LABEL[mode])} Analysis Name`}
 						className={FIELD_INPUT_CLASSNAME}
 					/>
 				</div>
 
 				<div>
-					<label className={FIELD_LABEL_CLASSNAME}>Description</label>
+					<label className={FIELD_LABEL_CLASSNAME}>{t('Description')}</label>
 					<textarea
 						value={description}
 						onChange={(e) => setDescription(e.target.value)}
-						placeholder="Add Short Description"
+						placeholder={t('Add Short Description')}
 						rows={3}
 						className={`resize-y ${FIELD_INPUT_CLASSNAME}`}
 					/>
@@ -581,7 +586,7 @@ export const AnalysisView = () => {
 					<SqlEditor
 						value={code}
 						onChange={handleCodeChange}
-						label={MODE_LABEL[mode]}
+						label={t(MODE_LABEL[mode])}
 						placeholder={isPql ? 'PREDICT ...' : 'SELECT ...'}
 					/>
 				</div>
@@ -603,11 +608,11 @@ export const AnalysisView = () => {
 				open={deletingItem !== null}
 				onCancel={handleDeleteClose}
 				onConfirm={handleDeleteConfirm}
-				title={`Delete ${MODE_LABEL[mode]} Analysis`}
+				title={`Delete ${t(MODE_LABEL[mode])} Analysis`}
 				message={
 					<>
-						Are you sure you want to delete <strong>{deletingItem?.name}</strong>? This
-						action cannot be undone.
+						{t('Are you sure you want to delete')} <strong>{deletingItem?.name}</strong>
+						{t('? This action cannot be undone.')}
 					</>
 				}
 				confirming={deleting}

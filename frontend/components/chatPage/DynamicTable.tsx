@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useMemo } from 'react';
 import type { ParsedTable, TableRow } from '@/lib/parseSqlResponse';
 import { EmptyState } from '@/common/EmptyState';
@@ -17,6 +18,8 @@ type DynamicTableProps = {
 };
 
 export const DynamicTable = ({ table }: DynamicTableProps) => {
+	const t = useTranslations();
+
 	const { columns, rows } = table;
 	const { skip, pageSize, pagination } = usePagination({ totalItems: rows.length });
 	// A fresh array every render would re-render `Table` on every parent render,
@@ -38,7 +41,7 @@ export const DynamicTable = ({ table }: DynamicTableProps) => {
 	);
 
 	if (columns.length === 0 || rows.length === 0) {
-		return <EmptyState variant={EmptyStateVariant.Inline} title="No Data Available" />;
+		return <EmptyState variant={EmptyStateVariant.Inline} title={t('No Data Available')} />;
 	}
 
 	return (

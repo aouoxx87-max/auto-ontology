@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useState, type ReactNode } from 'react';
 import { Button } from '@/common/Button';
 import { Size, ButtonTheme } from '@/enums/button';
@@ -93,13 +94,18 @@ export const BackPanelLayout = ({
 	panel,
 	children,
 	panelAriaLabel,
-	expandAriaLabel = 'Expand panel',
-	collapseAriaLabel = 'Collapse panel',
+	expandAriaLabel: expandAriaLabelProp,
+	collapseAriaLabel: collapseAriaLabelProp,
 	className = '',
 	defaultCollapsed = false,
 	expandedWidthClass = 'w-[296px]',
 	collapsedWidthClass = 'w-8',
 }: BackPanelLayoutProps) => {
+	const t = useTranslations();
+
+	const expandAriaLabel = expandAriaLabelProp ?? t('Expand panel');
+	const collapseAriaLabel = collapseAriaLabelProp ?? t('Collapse panel');
+
 	const [collapsed, setCollapsed] = useState(defaultCollapsed);
 	const toggleCollapsed = useCallback(() => setCollapsed((c) => !c), []);
 

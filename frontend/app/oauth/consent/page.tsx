@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/common/Button';
@@ -18,11 +19,13 @@ import { OauthStatus } from '@/app/oauth/OauthStatus';
 import { ButtonTheme, Size } from '@/enums/button';
 
 const ConsentForm = () => {
+	const t = useTranslations();
+
 	const params = useSearchParams();
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [outcome, setOutcome] = useState<'granted' | 'denied' | null>(null);
-	const clientId = params.get('client_id') ?? 'the MCP client';
+	const clientId = params.get('client_id') ?? t('the MCP client');
 	const scopes = (params.get('scope') ?? '')
 		.split(' ')
 		.map((scope) => scope.trim())
@@ -48,22 +51,22 @@ const ConsentForm = () => {
 			followOAuthRedirect(result.data.url);
 			return;
 		}
-		setError(result.error?.message ?? 'Could not complete authorization.');
+		setError(result.error?.message ?? t('Could not complete authorization.'));
 		setSubmitting(false);
 	};
 
 	if (outcome === 'granted') {
 		return (
-			<OauthStatus title="Thank You">
-				Authentication successful. You can close this page.
+			<OauthStatus title={t('Thank You')}>
+				{t('Authentication successful. You can close this page.')}
 			</OauthStatus>
 		);
 	}
 
 	if (outcome === 'denied') {
 		return (
-			<OauthStatus title="Authorization Cancelled">
-				You can close this page and return to the application that started sign-in.
+			<OauthStatus title={t('Authorization Cancelled')}>
+				{t('You can close this page and return to the application that started sign-in.')}
 			</OauthStatus>
 		);
 	}
@@ -72,17 +75,17 @@ const ConsentForm = () => {
 		<div className="flex w-full max-w-md flex-col gap-5">
 			<div className="space-y-2 text-center">
 				<h1 className="text-xl font-semibold text-heading dark:text-zinc-100">
-					Authorize MCP access
+					{t('Authorize MCP access')}
 				</h1>
 				<p className="text-sm text-body dark:text-zinc-400">
-					{clientId} is requesting access to Auto Ontology as your account.
+					{clientId} {t('is requesting access to Auto Ontology as your account.')}
 				</p>
 			</div>
 
 			{scopes.length ? (
 				<div className="rounded-md border border-zinc-200 p-4 dark:border-zinc-700">
 					<p className="mb-2 text-xs font-medium text-body dark:text-zinc-400">
-						Requested access
+						{t('Requested access')}
 					</p>
 					<ul className="space-y-1 text-sm text-heading dark:text-zinc-200">
 						{scopes.map((scope) => (
@@ -102,7 +105,7 @@ const ConsentForm = () => {
 					disabled={submitting}
 					onClick={() => submit(false)}
 				>
-					Cancel
+					{t('Cancel')}
 				</Button>
 				<Button
 					theme={ButtonTheme.Primary}
@@ -111,7 +114,7 @@ const ConsentForm = () => {
 					disabled={submitting}
 					onClick={() => submit(true)}
 				>
-					{submitting ? 'Authorizing…' : 'Authorize'}
+					{submitting ? t('Authorizing…') : t('Authorize')}
 				</Button>
 			</div>
 		</div>

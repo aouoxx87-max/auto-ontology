@@ -14,7 +14,8 @@
 		"lint": "eslint .",
 		"openapi": "tsx scripts/generate-openapi.ts",
 		"format": "prettier --write .",
-		"format:check": "prettier --check ."
+		"format:check": "prettier --check .",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@better-auth/api-key": "1.7.4",
@@ -51,6 +52,7 @@
 		"@types/react-dom": "^19",
 		"eslint": "^9",
 		"eslint-config-next": "16.3.8",
+		"jsdom": "^26.1.0",
 		"prettier": "^3.8.1",
 		"prisma": "^7.7.0",
 		"tailwindcss": "^4",

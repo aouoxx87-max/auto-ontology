@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import {
 	createContext,
 	useCallback,
@@ -79,6 +80,7 @@ const BreadcrumbContext = createContext<BreadcrumbContextValue>({
 });
 
 export const BreadcrumbProvider = ({ children }: { children: ReactNode }) => {
+	const t = useTranslations();
 	const pathname = usePathname();
 	const [prevPath, setPrevPath] = useState<string | null>(null);
 	const [routeCrumbs, setRouteCrumbs] = useState<BreadcrumbItem[]>(EMPTY_TRAIL);
@@ -106,8 +108,8 @@ export const BreadcrumbProvider = ({ children }: { children: ReactNode }) => {
 	}
 
 	const items = useMemo(
-		() => (trail.length === 0 ? routeCrumbs : [...routeCrumbs, ...trail]),
-		[routeCrumbs, trail],
+		() => [...routeCrumbs.map((item) => ({ ...item, label: t(item.label) })), ...trail],
+		[routeCrumbs, trail, t],
 	);
 
 	const value = useMemo(

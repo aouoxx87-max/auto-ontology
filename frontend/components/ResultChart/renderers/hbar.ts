@@ -13,8 +13,16 @@ import type { Mark, RenderInput } from './types';
  * text labels. The `delta` variant is diverging: bars extend either side of the
  * zero line and are colored by sign (gain vs loss), so direction and color agree.
  */
-export function renderHbar({ spec, box, min, max, colors, fmt }: RenderInput): Mark[] {
-	const marks: Mark[] = horizontalAxis(box, min, max, fmt);
+export function renderHbar({
+	spec,
+	box,
+	min,
+	max,
+	colors,
+	fmt,
+	locale = 'en',
+}: RenderInput): Mark[] {
+	const marks: Mark[] = horizontalAxis(box, min, max, fmt, locale);
 	const cats = spec.data.map((row) => String(row[spec.x.key] ?? ''));
 	const diverging = spec.type === 'delta';
 	const baseX = projectX(Math.max(min, 0), box, min, max);
@@ -41,7 +49,7 @@ export function renderHbar({ spec, box, min, max, colors, fmt }: RenderInput): M
 			const x = projectX(value, box, min, max);
 			const y = centerY - groupHeight / 2 + slotHeight * si;
 			const color = diverging ? (value >= 0 ? GAIN : LOSS) : colors[si];
-			const tip = `${cat}${seriesCount > 1 ? ` · ${series.label ?? series.key}` : ''}: ${formatValueFull(value, fmt)}`;
+			const tip = `${cat}${seriesCount > 1 ? ` · ${series.label ?? series.key}` : ''}: ${formatValueFull(value, fmt, locale)}`;
 			marks.push({
 				kind: 'rect',
 				x: Math.min(baseX, x),
@@ -56,7 +64,7 @@ export function renderHbar({ spec, box, min, max, colors, fmt }: RenderInput): M
 					kind: 'text',
 					x: x + (value >= 0 ? 6 : -6),
 					y: centerY + 3.5,
-					text: formatValue(value, fmt),
+					text: formatValue(value, fmt, locale),
 					anchor: value >= 0 ? 'start' : 'end',
 					variant: 'value',
 				});

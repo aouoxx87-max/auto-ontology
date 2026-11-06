@@ -12,8 +12,16 @@ import type { Mark, RenderInput } from './types';
  * the axis minimum when data dips negative); single-series bars carry a value
  * label, grouped bars rely on the legend and tooltip.
  */
-export function renderBar({ spec, box, min, max, colors, fmt }: RenderInput): Mark[] {
-	const marks: Mark[] = verticalAxis(box, min, max, fmt, spec.y?.label);
+export function renderBar({
+	spec,
+	box,
+	min,
+	max,
+	colors,
+	fmt,
+	locale = 'en',
+}: RenderInput): Mark[] {
+	const marks: Mark[] = verticalAxis(box, min, max, fmt, spec.y?.label, locale);
 	const cats = spec.data.map((row) => String(row[spec.x.key] ?? ''));
 	const baselineY = projectY(Math.max(min, 0), box, min, max);
 	const band = box.w / Math.max(cats.length, 1);
@@ -28,7 +36,7 @@ export function renderBar({ spec, box, min, max, colors, fmt }: RenderInput): Ma
 			if (value == null) return;
 			const x = center - groupWidth / 2 + barWidth * si;
 			const y = projectY(value, box, min, max);
-			const tip = `${cat}${seriesCount > 1 ? ` · ${series.label ?? series.key}` : ''}: ${formatValueFull(value, fmt)}`;
+			const tip = `${cat}${seriesCount > 1 ? ` · ${series.label ?? series.key}` : ''}: ${formatValueFull(value, fmt, locale)}`;
 			marks.push({
 				kind: 'rect',
 				x,
@@ -45,7 +53,7 @@ export function renderBar({ spec, box, min, max, colors, fmt }: RenderInput): Ma
 					kind: 'text',
 					x: center,
 					y: labelY,
-					text: formatValue(value, fmt),
+					text: formatValue(value, fmt, locale),
 					anchor: 'middle',
 					variant: 'value',
 				});

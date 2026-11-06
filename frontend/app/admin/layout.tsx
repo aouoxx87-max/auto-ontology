@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -13,6 +14,7 @@ const tabs = [
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
+	const t = useTranslations();
 	const pathname = usePathname();
 
 	return (
@@ -30,7 +32,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 									: 'border-transparent text-secondary hover:text-body dark:hover:text-zinc-300'
 							}`}
 						>
-							{tab.label}
+							{t(tab.label)}
 						</Link>
 					);
 				})}

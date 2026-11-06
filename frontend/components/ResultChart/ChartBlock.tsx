@@ -3,6 +3,7 @@
 
 'use client';
 
+import { useLocale } from '@/i18n/LocaleProvider';
 import { type FC, type ReactNode, useMemo } from 'react';
 import { parseCarouselSpec, parseChartSpec, parseKpiSpec } from './parse';
 import { degenerateKpis, normalizeChart } from './normalize';
@@ -17,13 +18,14 @@ import { ChartKpiCard } from './ChartKpi';
  * renders as a card. Anything malformed falls back to the raw block.
  */
 export const ChartBlock: FC<{ raw: string; fallback?: ReactNode }> = ({ raw, fallback = null }) => {
+	const locale = useLocale();
 	return useMemo<ReactNode>(() => {
 		const carousel = parseCarouselSpec(raw);
 		if (carousel) return <ResultChartCarousel spec={carousel} />;
 
 		const spec = parseChartSpec(raw);
 		if (spec) {
-			const kpis = degenerateKpis(spec);
+			const kpis = degenerateKpis(spec, locale);
 			if (kpis)
 				return <ChartKpiCard title={spec.title} subtitle={spec.subtitle} kpis={kpis} />;
 			const { spec: normalized, truncation } = normalizeChart(spec);
@@ -41,5 +43,5 @@ export const ChartBlock: FC<{ raw: string; fallback?: ReactNode }> = ({ raw, fal
 			);
 
 		return fallback;
-	}, [raw, fallback]);
+	}, [raw, fallback, locale]);
 };

@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useLocale, useTranslations } from '@/i18n/LocaleProvider';
 import { useMemo } from 'react';
 import type { ChatMessage } from '@/types/chat';
 import { CopyButton } from '@/common/Button';
@@ -27,37 +28,42 @@ const QueryResultsSection = ({
 	parsedTable,
 	singleCell,
 	className,
-}: QueryResultsSectionProps) => (
-	<div className={className}>
-		<div className="mb-1 text-xs font-medium text-secondary dark:text-zinc-400">
-			Query results
-		</div>
-		{!sqlResponse && <p className="text-xs italic text-secondary dark:text-zinc-500">null</p>}
-		{sqlResponse && singleCell && (
-			<div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-				<span className="text-xs text-secondary dark:text-zinc-400">
-					{singleCell.column}:{' '}
-				</span>
-				<span className="text-sm font-semibold text-heading dark:text-zinc-100">
-					{singleCell.value}
-				</span>
+}: QueryResultsSectionProps) => {
+	const t = useTranslations();
+	return (
+		<div className={className}>
+			<div className="mb-1 text-xs font-medium text-secondary dark:text-zinc-400">
+				{t('Query results')}
 			</div>
-		)}
-		{sqlResponse && parsedTable && !singleCell && <DynamicTable table={parsedTable} />}
-		{sqlResponse && !parsedTable && (
-			<div className="group relative overflow-hidden rounded-lg bg-zinc-900 dark:bg-zinc-950">
-				<div className="flex items-center justify-between border-b border-zinc-700 px-3 py-1.5">
-					{/* Dark in both themes, so the light-theme text tokens do not apply here. */}
-					<span className="text-xs font-medium text-zinc-400">Raw</span>
-					<CopyButton text={sqlResponse} />
+			{!sqlResponse && (
+				<p className="text-xs italic text-secondary dark:text-zinc-500">null</p>
+			)}
+			{sqlResponse && singleCell && (
+				<div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
+					<span className="text-xs text-secondary dark:text-zinc-400">
+						{singleCell.column}:{' '}
+					</span>
+					<span className="text-sm font-semibold text-heading dark:text-zinc-100">
+						{singleCell.value}
+					</span>
 				</div>
-				<pre className="overflow-x-auto p-3 text-xs leading-relaxed text-zinc-100">
-					<code>{sqlResponse}</code>
-				</pre>
-			</div>
-		)}
-	</div>
-);
+			)}
+			{sqlResponse && parsedTable && !singleCell && <DynamicTable table={parsedTable} />}
+			{sqlResponse && !parsedTable && (
+				<div className="group relative overflow-hidden rounded-lg bg-zinc-900 dark:bg-zinc-950">
+					<div className="flex items-center justify-between border-b border-zinc-700 px-3 py-1.5">
+						{/* Dark in both themes, so the light-theme text tokens do not apply here. */}
+						<span className="text-xs font-medium text-zinc-400">{t('Raw')}</span>
+						<CopyButton text={sqlResponse} />
+					</div>
+					<pre className="overflow-x-auto p-3 text-xs leading-relaxed text-zinc-100">
+						<code>{sqlResponse}</code>
+					</pre>
+				</div>
+			)}
+		</div>
+	);
+};
 
 type MessageBubbleProps = {
 	message: ChatMessage;
@@ -68,6 +74,8 @@ const hasEmbeddedChart = (content: string): boolean =>
 	/(^|\n)```(?:chart|chart-carousel)\b/.test(content);
 
 export const MessageBubble = ({ message }: MessageBubbleProps) => {
+	const locale = useLocale();
+
 	const isUser = message.role === 'user';
 	const parsedTable = useMemo(() => parseSqlResponse(message.sqlResponse), [message.sqlResponse]);
 
@@ -126,7 +134,7 @@ export const MessageBubble = ({ message }: MessageBubbleProps) => {
 				)}
 
 				<time className="mt-1.5 block text-right text-[10px] opacity-50">
-					{formatDate(message.timestamp, 'HH:mm')}
+					{formatDate(message.timestamp, 'HH:mm', locale)}
 				</time>
 			</div>
 		</div>

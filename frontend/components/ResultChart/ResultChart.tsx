@@ -11,6 +11,7 @@
 
 'use client';
 
+import { useLocale, useTranslations } from '@/i18n/LocaleProvider';
 import { type FC, type MouseEvent, type ReactNode, useId, useMemo, useRef, useState } from 'react';
 import { CHART_WIDTH, chartHeight, plotBox } from './geometry';
 import { seriesColor } from './palette';
@@ -33,6 +34,9 @@ export const ResultChart: FC<{ spec: ChartSpec; truncation?: Truncation | null }
 	spec,
 	truncation = null,
 }) => {
+	const t = useTranslations();
+	const locale = useLocale();
+
 	const layout = useMemo(() => {
 		const fmt = spec.y?.format ?? 'number';
 		const colors = spec.series.map((s, i) => seriesColor(s.color, i));
@@ -48,13 +52,16 @@ export const ResultChart: FC<{ spec: ChartSpec; truncation?: Truncation | null }
 			const firstValues = spec.data
 				.map((row) => toNumber(row[spec.series[0].key]))
 				.filter((v): v is number => v != null);
-			const labelChars = Math.max(0, ...firstValues.map((v) => formatValue(v, fmt).length));
+			const labelChars = Math.max(
+				0,
+				...firstValues.map((v) => formatValue(v, fmt, locale).length),
+			);
 			box = plotBox(height, 132, Math.min(96, Math.max(40, labelChars * 7 + 16)));
 		}
 
-		const marks = RENDERERS[spec.type]({ spec, box, min, max, colors, fmt });
+		const marks = RENDERERS[spec.type]({ spec, box, min, max, colors, fmt, locale });
 		return { colors, height, marks };
-	}, [spec]);
+	}, [spec, locale]);
 
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -76,7 +83,7 @@ export const ResultChart: FC<{ spec: ChartSpec; truncation?: Truncation | null }
 		<figure
 			ref={wrapRef}
 			className="result-chart"
-			aria-label={`${spec.type} chart: ${spec.title}`}
+			aria-label={t('{type} chart: {title}', { type: spec.type, title: spec.title })}
 		>
 			<ChartToolbar
 				spec={spec}
@@ -103,7 +110,7 @@ export const ResultChart: FC<{ spec: ChartSpec; truncation?: Truncation | null }
 				viewBox={`0 0 ${CHART_WIDTH} ${layout.height}`}
 				preserveAspectRatio="xMidYMid meet"
 				role="img"
-				aria-label={`${spec.type} chart: ${spec.title}`}
+				aria-label={t('{type} chart: {title}', { type: spec.type, title: spec.title })}
 				className="result-chart-svg"
 			>
 				<defs>
@@ -127,7 +134,7 @@ export const ResultChart: FC<{ spec: ChartSpec; truncation?: Truncation | null }
 			</svg>
 			{truncation && (
 				<p className="result-chart-note">
-					Showing top {truncation.shown} of {truncation.total}
+					{t('Showing top')} {truncation.shown} {t('of')} {truncation.total}
 				</p>
 			)}
 			{dataOpen && <ChartDataTable spec={spec} id={dataId} />}

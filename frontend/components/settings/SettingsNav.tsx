@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -57,6 +58,8 @@ export type SettingsNavProps = {
 // The whole Settings section is admin-only (gated in app/settings/layout.tsx),
 // so no per-item role checks are needed here.
 export const SettingsNav = ({ connectionsEnvManaged }: SettingsNavProps) => {
+	const t = useTranslations();
+
 	const pathname = usePathname();
 
 	const items: NavItem[] = [];
@@ -77,13 +80,13 @@ export const SettingsNav = ({ connectionsEnvManaged }: SettingsNavProps) => {
 	return (
 		<nav
 			className="flex min-h-0 flex-1 flex-col gap-y-1 overflow-y-auto px-3 py-2 sm:px-4"
-			aria-label="Settings sections"
+			aria-label={t('Settings sections')}
 		>
 			{items.map((item) => {
 				const selected = pathname === item.href || pathname.startsWith(`${item.href}/`);
 				return (
 					<Link key={item.href} href={item.href} className={rowClassName(selected)}>
-						{item.label}
+						{t(item.label)}
 					</Link>
 				);
 			})}

@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Spinner } from '@nvidia/foundations-react-core';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -22,6 +23,8 @@ import { ChatInput } from './ChatInput';
 import { SemanticNotReady } from './SemanticNotReady';
 
 export const ChatView = () => {
+	const t = useTranslations();
+
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -69,7 +72,7 @@ export const ChatView = () => {
 			setConversations(
 				summaries.map((s: ConversationSummary) => ({
 					id: s.id,
-					title: s.title || 'New conversation',
+					title: s.title || t('New conversation'),
 					messages: [],
 					createdAt: new Date(s.created_at).getTime(),
 				})),
@@ -77,7 +80,7 @@ export const ChatView = () => {
 		} catch {
 			// ignore fetch errors
 		}
-	}, []);
+	}, [t]);
 
 	useEffect(() => {
 		setSidebarLoading(true);
@@ -195,7 +198,7 @@ export const ChatView = () => {
 			let convId = activeConvId;
 			if (!convId) {
 				try {
-					const title = text.slice(0, 50) || 'New conversation';
+					const title = text.slice(0, 50) || t('New conversation');
 					const created = await conversationsApi.create(title);
 					convId = created.id;
 					loadedFocusRef.current = convId;
@@ -208,7 +211,7 @@ export const ChatView = () => {
 			}
 			return sendMessage(text, convId);
 		},
-		[activeConvId, sendMessage, refreshConversations, updateFocusInUrl],
+		[activeConvId, sendMessage, t, updateFocusInUrl, refreshConversations],
 	);
 
 	return (
@@ -228,7 +231,7 @@ export const ChatView = () => {
 			<main className="flex min-w-0 flex-1 flex-col">
 				{semanticReady == null ? (
 					<div className="flex flex-1 items-center justify-center">
-						<Spinner aria-label="Checking semantic layer" className="h-10 w-10" />
+						<Spinner aria-label={t('Checking semantic layer')} className="h-10 w-10" />
 					</div>
 				) : !semanticReady ? (
 					<SemanticNotReady />

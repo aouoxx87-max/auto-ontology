@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import { Button } from '@/common/Button';
 import { Icon, IconName } from '@/common/icons';
@@ -34,13 +35,17 @@ export const FileUpload = ({
 	onChange,
 	accept,
 	disabled = false,
-	label = 'Click to upload',
+	label: labelProp,
 	description,
 	validate,
 	onError,
-	'aria-label': ariaLabel = 'Upload a file',
+	'aria-label': ariaLabelProp,
 	className = '',
 }: FileUploadProps) => {
+	const t = useTranslations();
+	const label = labelProp ?? t('Click to upload');
+	const ariaLabel = ariaLabelProp ?? t('Upload a file');
+
 	const [isDragOver, setIsDragOver] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,7 +131,7 @@ export const FileUpload = ({
 							event.stopPropagation();
 							handleClear();
 						}}
-						aria-label="Remove selected file"
+						aria-label={t('Remove selected file')}
 					>
 						<Icon name={IconName.Close} className="h-3.5 w-3.5" />
 					</Button>
@@ -137,7 +142,7 @@ export const FileUpload = ({
 						<span className="font-medium text-[#5e9400] dark:text-[#a3d63a]">
 							{label}
 						</span>{' '}
-						or drag and drop
+						{t('or drag and drop')}
 					</p>
 					{description ? <p className="text-xs text-secondary">{description}</p> : null}
 				</>

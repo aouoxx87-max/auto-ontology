@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { Locale } from '@/types/i18n';
 import type { PlotBox } from '../geometry';
 import { formatTick, ticks } from '../scale';
 import type { ValueFormat } from '../types';
@@ -18,6 +19,7 @@ export function verticalAxis(
 	max: number,
 	fmt: ValueFormat,
 	unit?: string,
+	locale: Locale = 'en',
 ): Mark[] {
 	const marks: Mark[] = [];
 	const span = max - min || 1;
@@ -28,7 +30,7 @@ export function verticalAxis(
 			kind: 'text',
 			x: box.x0 - 8,
 			y: y + 3.5,
-			text: formatTick(value, fmt),
+			text: formatTick(value, fmt, locale),
 			anchor: 'end',
 			variant: 'tick',
 		});
@@ -47,7 +49,13 @@ export function verticalAxis(
 }
 
 /** Value-axis gridlines + tick labels along the bottom edge (horizontal bar types). */
-export function horizontalAxis(box: PlotBox, min: number, max: number, fmt: ValueFormat): Mark[] {
+export function horizontalAxis(
+	box: PlotBox,
+	min: number,
+	max: number,
+	fmt: ValueFormat,
+	locale: Locale = 'en',
+): Mark[] {
 	const marks: Mark[] = [];
 	const span = max - min || 1;
 	for (const value of ticks(min, max, 4)) {
@@ -57,7 +65,7 @@ export function horizontalAxis(box: PlotBox, min: number, max: number, fmt: Valu
 			kind: 'text',
 			x,
 			y: box.y0 + 16,
-			text: formatTick(value, fmt),
+			text: formatTick(value, fmt, locale),
 			anchor: 'middle',
 			variant: 'tick',
 		});

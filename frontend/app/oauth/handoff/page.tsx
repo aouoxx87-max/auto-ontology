@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Icon, IconName } from '@/common/icons';
@@ -24,6 +25,8 @@ const callbackError = (target: string | null): string | null => {
 };
 
 const HandoffStatus = () => {
+	const t = useTranslations();
+
 	const params = useSearchParams();
 	const target = params.get('url');
 	const error = callbackError(target);
@@ -35,12 +38,12 @@ const HandoffStatus = () => {
 	}, [error, target]);
 
 	if (error) {
-		return <p className="text-center text-sm text-red-500">{error}</p>;
+		return <p className="text-center text-sm text-red-500">{t(error)}</p>;
 	}
 
 	return (
-		<OauthStatus title="Thank You">
-			Authentication successful. You can close this page.
+		<OauthStatus title={t('Thank You')}>
+			{t('Authentication successful. You can close this page.')}
 		</OauthStatus>
 	);
 };

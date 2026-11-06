@@ -2,11 +2,14 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import { getTranslations } from '@/i18n/server';
 import { Suspense } from 'react';
 import { Icon, IconName } from '@/common/icons';
 import { TermsLoadingSkeleton, TermsView } from '@/components/termsPage';
 
-export default function TermsPage() {
+export default async function TermsPage() {
+	const t = await getTranslations();
+
 	return (
 		<Suspense
 			fallback={
@@ -17,7 +20,7 @@ export default function TermsPage() {
 							className="h-5 w-5 text-body dark:text-zinc-300"
 						/>
 						<h1 className="text-lg font-semibold tracking-tight text-heading dark:text-zinc-100">
-							Terms
+							{t('Terms')}
 						</h1>
 					</header>
 					<div className="flex-1 px-6 py-6">

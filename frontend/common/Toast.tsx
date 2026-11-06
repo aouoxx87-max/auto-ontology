@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/common/Button';
@@ -96,6 +97,8 @@ export const Toast = ({
 	variant = ToastVariant.Error,
 	onClose,
 }: ToastProps) => {
+	const t = useTranslations();
+
 	const mounted = useSyncExternalStore(
 		subscribeHydration,
 		getHydratedSnapshot,
@@ -104,7 +107,8 @@ export const Toast = ({
 
 	if (!mounted || !open) return null;
 
-	const resolvedTitle = title ?? defaultTitle[variant];
+	const resolvedTitle =
+		title ?? (defaultTitle[variant] == null ? undefined : t(defaultTitle[variant]));
 
 	return createPortal(
 		<div
@@ -128,7 +132,7 @@ export const Toast = ({
 					iconOnly
 					type="button"
 					onClick={onClose}
-					aria-label="Dismiss notification"
+					aria-label={t('Dismiss notification')}
 				>
 					<svg
 						viewBox="0 0 24 24"

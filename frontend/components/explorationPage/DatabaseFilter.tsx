@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useEffect, useMemo, useState } from 'react';
 
 import { datasources } from '@/api/datasources';
@@ -33,6 +34,8 @@ export type DatabaseFilterProps = {
  * that catalog in full.
  */
 export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
+	const t = useTranslations();
+
 	const [databases, setDatabases] = useState<Database[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [failed, setFailed] = useState(false);
@@ -56,14 +59,14 @@ export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
 	);
 
 	const selectedName = databases.find((database) => database.id === selected)?.name;
-	const summary = selected === null ? 'All' : (selectedName ?? 'Filtered');
+	const summary = selected === null ? t('All') : (selectedName ?? t('Filtered'));
 
 	const emptyMessage = failed
-		? 'Could not load databases'
+		? t('Could not load databases')
 		: loading
-			? 'Loading databases…'
+			? t('Loading databases…')
 			: databases.length === 0
-				? 'No databases are connected'
+				? t('No databases are connected')
 				: null;
 
 	return (
@@ -77,7 +80,7 @@ export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
 						theme={SelectButtonTheme.SelectField}
 						onClick={togglePanel}
 						aria-expanded={open}
-						aria-label="Filter by database"
+						aria-label={t('Filter by database')}
 					>
 						<span className="flex min-w-0 items-center gap-2">
 							<Icon
@@ -104,7 +107,7 @@ export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
 				<div className="flex flex-col">
 					<div className="flex items-center justify-between gap-2 px-2 py-1">
 						<span className="text-xs font-medium text-secondary dark:text-zinc-400">
-							Filter By
+							{t('Filter By')}
 						</span>
 						<Button
 							theme={ButtonTheme.Minimal}
@@ -116,7 +119,7 @@ export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
 							}}
 							disabled={emptyMessage !== null || selected === null}
 						>
-							Select All
+							{t('Select All')}
 						</Button>
 					</div>
 					{emptyMessage !== null ? (
@@ -143,7 +146,7 @@ export const DatabaseFilter = ({ selected, onChange }: DatabaseFilterProps) => {
 										className="h-4 w-4 text-zinc-500 dark:text-zinc-400"
 									/>
 								</span>
-								All databases
+								{t('All databases')}
 							</label>
 							<DataTreeSelect
 								databases={databases}

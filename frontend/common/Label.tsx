@@ -2,6 +2,9 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+'use client';
+
+import { useTranslations } from '@/i18n/LocaleProvider';
 import type { CSSProperties } from 'react';
 
 import { Text } from '@/common/Text';
@@ -54,6 +57,8 @@ export type LabelProps = LabelStyleProps &
 	);
 
 export const Label = ({ label, onClick, color, muted = false, onRemove }: LabelProps) => {
+	const t = useTranslations();
+
 	const usesZoneColor = !muted && color != null && color !== '';
 	const interactive = onClick != null;
 	const palette = muted ? LABEL_MUTED : usesZoneColor ? LABEL_NEUTRAL : LABEL_GREEN;
@@ -84,8 +89,8 @@ export const Label = ({ label, onClick, color, muted = false, onRemove }: LabelP
 				<button
 					type="button"
 					onClick={onRemove}
-					aria-label={`Remove ${label}`}
-					title={`Remove ${label}`}
+					aria-label={t('Remove {name}', { name: label })}
+					title={t('Remove {name}', { name: label })}
 					className="-mr-1 ml-1.5 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/15"
 				>
 					<svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>

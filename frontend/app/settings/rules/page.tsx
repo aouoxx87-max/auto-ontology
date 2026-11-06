@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useLocale, useTranslations } from '@/i18n/LocaleProvider';
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -90,6 +91,10 @@ const DELETE_OPTIONS = [
  * goes to the backend and starts the paging over.
  */
 export default function RulesSettingsPage() {
+	const locale = useLocale();
+
+	const t = useTranslations();
+
 	const router = useRouter();
 	const [information, setInformation] = useState<Rule | null>(null);
 	const [renaming, setRenaming] = useState<Rule | null>(null);
@@ -114,10 +119,10 @@ export default function RulesSettingsPage() {
 				limit,
 			});
 			setHasLoaded(true);
-			if (response.error) return { error: response.message ?? 'Failed to load rules.' };
+			if (response.error) return { error: response.message ?? t('Failed to load rules.') };
 			return { items: response.data ?? [], total: response.total ?? 0 };
 		},
-		[debouncedQuery],
+		[debouncedQuery, t],
 	);
 
 	const {
@@ -166,7 +171,7 @@ export default function RulesSettingsPage() {
 		setRenamingSaving(false);
 
 		if (response.error) {
-			setRenameError(response.message ?? 'Failed to rename rule.');
+			setRenameError(response.message ?? t('Failed to rename rule.'));
 			return;
 		}
 
@@ -187,7 +192,7 @@ export default function RulesSettingsPage() {
 		setDeleting(false);
 
 		if (response.error) {
-			setDeleteError(response.message ?? 'Failed to delete rule.');
+			setDeleteError(response.message ?? t('Failed to delete rule.'));
 			return;
 		}
 
@@ -212,7 +217,7 @@ export default function RulesSettingsPage() {
 			>
 				<div className="w-full space-y-5">
 					<h1 className="text-base font-semibold text-heading dark:text-zinc-100">
-						Rules
+						{t('Rules')}
 					</h1>
 
 					{/* A box for narrowing a list, so there is none until there is a
@@ -225,8 +230,8 @@ export default function RulesSettingsPage() {
 						<SearchInput
 							value={query}
 							onChange={setQuery}
-							placeholder="Search Rules…"
-							aria-label="Search rules"
+							placeholder={t('Search Rules…')}
+							aria-label={t('Search rules')}
 							className="w-full"
 						/>
 					) : null}
@@ -238,7 +243,7 @@ export default function RulesSettingsPage() {
 					) : null}
 
 					{loading ? (
-						<div className="py-2" role="status" aria-label="Loading rules">
+						<div className="py-2" role="status" aria-label={t('Loading rules')}>
 							<SkeletonRows rows={4} />
 						</div>
 					) : null}
@@ -249,19 +254,21 @@ export default function RulesSettingsPage() {
 							illustration={<Placeholders.NoRules />}
 							title={
 								debouncedQuery
-									? 'No Rules Match Your Search'
-									: 'No Rules Created Yet'
+									? t('No Rules Match Your Search')
+									: t('No Rules Created Yet')
 							}
 							description={
 								debouncedQuery
 									? undefined
-									: 'Rules are created on the Discovery page. Search for the items you would like to tag, then create a new rule from the results.'
+									: t(
+											'Rules are created on the Discovery page. Search for the items you would like to tag, then create a new rule from the results.',
+										)
 							}
 							action={
 								debouncedQuery
 									? undefined
 									: {
-											label: 'Go to Discovery',
+											label: t('Go to Discovery'),
 											onClick: () => router.push('/discovery'),
 										}
 							}
@@ -287,7 +294,7 @@ export default function RulesSettingsPage() {
 											<PopoverMenu
 												items={[
 													{
-														label: 'Information',
+														label: t('Information'),
 														icon: (
 															<Icon
 																name={IconName.Exploration}
@@ -297,7 +304,7 @@ export default function RulesSettingsPage() {
 														onClick: () => setInformation(rule),
 													},
 													{
-														label: 'Rename Rule',
+														label: t('Rename Rule'),
 														icon: (
 															<Icon
 																name={IconName.Pencil}
@@ -307,7 +314,7 @@ export default function RulesSettingsPage() {
 														onClick: () => openRename(rule),
 													},
 													{
-														label: 'Delete Rule',
+														label: t('Delete Rule'),
 														icon: (
 															<Icon
 																name={IconName.Trash}
@@ -332,7 +339,9 @@ export default function RulesSettingsPage() {
 														iconOnly
 														type="button"
 														onClick={toggle}
-														aria-label={`Actions for ${rule.name}`}
+														aria-label={t('Actions for {name}', {
+															name: rule.name,
+														})}
 													>
 														<Icon
 															name={IconName.DotsVertical}
@@ -348,12 +357,12 @@ export default function RulesSettingsPage() {
 											name={IconName.Users}
 											className="h-3.5 w-3.5 shrink-0"
 										/>
-										<span>Created By</span>
+										<span>{t('Created By')}</span>
 										<RuleAuthor author={rule.created_by_user} />
 										<span className="ml-auto flex items-center gap-3">
-											<span>Last Modified</span>
+											<span>{t('Last Modified')}</span>
 											<span className="text-body dark:text-zinc-300">
-												{formatDate(rule.modified)}
+												{formatDate(rule.modified, undefined, locale)}
 											</span>
 										</span>
 									</div>
@@ -372,8 +381,8 @@ export default function RulesSettingsPage() {
 			<ModalCreateNewItem
 				open={renaming !== null}
 				onClose={closeRename}
-				title="Rename Rule"
-				submitLabel={renamingSaving ? 'Saving…' : 'Save'}
+				title={t('Rename Rule')}
+				submitLabel={renamingSaving ? t('Saving…') : t('Save')}
 				canSubmit={canRename}
 				onSubmit={handleRename}
 				className="w-[520px] max-w-full"
@@ -387,21 +396,23 @@ export default function RulesSettingsPage() {
 							name={IconName.Lightning}
 							className="h-4 w-4 text-secondary dark:text-zinc-400"
 						/>
-						Rule Name
+						{t('Rule Name')}
 					</label>
 					<input
 						id="rule-name"
 						type="text"
 						value={name}
 						onChange={(event) => setName(event.target.value)}
-						placeholder="Type Rule Name"
+						placeholder={t('Type Rule Name')}
 						className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-body outline-none transition-colors placeholder:text-secondary focus:border-[#76b900] focus:ring-2 focus:ring-[#76b900]/30 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300 dark:placeholder:text-zinc-500"
 					/>
 					{/* The tags and the search are on the information card, and are not
 					    editable — worth saying inside the dialog that changes the one
 					    thing about a rule that is. */}
 					<p className="mt-1.5 text-xs text-secondary dark:text-zinc-400">
-						Renaming does not change what the rule matches or the tags it applies.
+						{t(
+							'Renaming does not change what the rule matches or the tags it applies.',
+						)}
 					</p>
 				</div>
 
@@ -423,22 +434,27 @@ export default function RulesSettingsPage() {
 			    given the choice of whether to accept it. */}
 			<ConfirmModal
 				open={confirmDelete !== null}
-				title="Delete Rule"
+				title={t('Delete Rule')}
 				className="w-[520px] max-w-full"
 				message={
 					confirmDelete == null ? (
 						''
 					) : (
 						<>
-							<p>{`Are you sure you want to delete "${confirmDelete.name}"? This action cannot be undone.`}</p>
+							<p>
+								{t(
+									'Are you sure you want to delete "{name}"? This action cannot be undone.',
+									{ name: confirmDelete.name },
+								)}
+							</p>
 							<fieldset className="mt-4">
 								<legend className="text-xs font-medium text-heading dark:text-zinc-200">
-									The tags this rule applied
+									{t('The tags this rule applied')}
 								</legend>
 								<div className="mt-2 space-y-2">
 									{DELETE_OPTIONS.map((option) => (
 										<label
-											key={option.label}
+											key={t(option.label)}
 											className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 px-3 py-2 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800/80"
 										>
 											<input
@@ -451,10 +467,10 @@ export default function RulesSettingsPage() {
 											/>
 											<span>
 												<span className="block text-sm font-medium text-heading dark:text-zinc-100">
-													{option.label}
+													{t(option.label)}
 												</span>
 												<span className="block text-xs text-secondary dark:text-zinc-400">
-													{option.description}
+													{t(option.description)}
 												</span>
 											</span>
 										</label>
@@ -466,7 +482,7 @@ export default function RulesSettingsPage() {
 				}
 				// The button says which of the two is about to happen, so the last
 				// thing read before pressing it is the choice that was made.
-				confirmLabel={keepTags ? 'Delete Rule Only' : 'Delete All'}
+				confirmLabel={keepTags ? t('Delete Rule Only') : t('Delete All')}
 				onConfirm={handleConfirmDelete}
 				onCancel={() => {
 					if (deleting) return;

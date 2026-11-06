@@ -2,11 +2,13 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import { getTranslations } from '@/i18n/server';
 import type { Metadata } from 'next';
 import { requireUser } from '@/auth/auth-guards';
 
-export const metadata: Metadata = {
-	title: 'Data',
+export const generateMetadata = async (): Promise<Metadata> => {
+	const t = await getTranslations();
+	return { title: t('Data') };
 };
 
 export default async function DataLayout({ children }: { children: React.ReactNode }) {

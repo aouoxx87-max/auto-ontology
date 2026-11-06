@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { Locale } from '@/types/i18n';
 import type { PlotBox } from '../geometry';
 import type { ChartSpec, ValueFormat } from '../types';
 
@@ -35,6 +36,7 @@ export interface RenderInput {
 	max: number;
 	colors: string[];
 	fmt: ValueFormat;
+	locale?: Locale;
 }
 
 export type Renderer = (input: RenderInput) => Mark[];

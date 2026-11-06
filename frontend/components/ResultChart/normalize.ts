@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { Locale } from '@/types/i18n';
+import { createTranslator } from '@/i18n/translate';
 import { toNumber } from './parse';
 import { formatValue } from './scale';
 import type { ChartKpi, ChartSpec, ChartType } from './types';
@@ -42,7 +44,7 @@ function rowMagnitude(spec: ChartSpec, row: ChartSpec['data'][number]): number {
  * every bar is the same height. A multi-row chart with sparse values stays a
  * chart so its missing points render as gaps. Prefers the spec's own `kpis`.
  */
-export function degenerateKpis(spec: ChartSpec): ChartKpi[] | null {
+export function degenerateKpis(spec: ChartSpec, locale: Locale = 'en'): ChartKpi[] | null {
 	if (spec.series.length !== 1) return null;
 	const key = spec.series[0].key;
 	const fmt = spec.y?.format ?? 'number';
@@ -59,7 +61,7 @@ export function degenerateKpis(spec: ChartSpec): ChartKpi[] | null {
 		return [
 			{
 				label: spec.title,
-				value: formatValue(values[0], fmt),
+				value: formatValue(values[0], fmt, locale),
 				sub: cat || undefined,
 				tone: 'accent',
 			},
@@ -74,8 +76,8 @@ export function degenerateKpis(spec: ChartSpec): ChartKpi[] | null {
 			return [
 				{
 					label: spec.title,
-					value: `≈ ${formatValue(max, fmt)}`,
-					sub: `across all ${values.length}`,
+					value: `≈ ${formatValue(max, fmt, locale)}`,
+					sub: createTranslator(locale)('across all {count}', { count: values.length }),
 					tone: 'accent',
 				},
 			];

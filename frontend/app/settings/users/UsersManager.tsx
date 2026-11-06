@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useLocale, useTranslations } from '@/i18n/LocaleProvider';
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSession } from '@/auth/auth-client';
@@ -48,6 +49,10 @@ const actionErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 export const UsersManager = () => {
+	const locale = useLocale();
+
+	const t = useTranslations();
+
 	const queryClient = useQueryClient();
 	const { data: session } = useSession();
 	const [users, setUsers] = useState<User[]>([]);
@@ -68,9 +73,9 @@ export const UsersManager = () => {
 	const adminCount = users.filter((user) => user.role === Role.Admin).length;
 	const editingRoleLockedReason =
 		editingUser?.id === currentUserId
-			? 'You cannot change your own role.'
+			? t('You cannot change your own role.')
 			: editingUser?.role === Role.Admin && adminCount <= 1
-				? 'The last admin cannot be made a viewer.'
+				? t('The last admin cannot be made a viewer.')
 				: null;
 
 	useEffect(() => {
@@ -87,7 +92,7 @@ export const UsersManager = () => {
 		setError(null);
 		const actionResult = await action();
 		if (actionResult.error) {
-			setError(actionErrorMessage(actionResult.error, 'Action failed.'));
+			setError(actionErrorMessage(actionResult.error, t('Action failed.')));
 		} else {
 			await invalidateOwners(queryClient);
 		}
@@ -103,7 +108,7 @@ export const UsersManager = () => {
 		setInviteError(null);
 		const result = await invitationsApi.create({ email, name, role });
 		if (result.error) {
-			setInviteError(result.message ?? 'Failed to invite the user.');
+			setInviteError(result.message ?? t('Failed to invite the user.'));
 			setInviting(false);
 			return;
 		}
@@ -112,24 +117,24 @@ export const UsersManager = () => {
 		const [listed, invited] = await Promise.all([usersApi.list(), invitationsApi.list()]);
 		setUsers(listed.users);
 		if (listed.error) setError(listed.error);
-		if (invited.error) setError(invited.message ?? 'Failed to load invitations.');
+		if (invited.error) setError(invited.message ?? t('Failed to load invitations.'));
 		else setInvitations(invited.invitations);
 	};
 
 	const editUser = async (user: User, input: UpdateUserInput) => {
 		if (user.id === currentUserId && input.role !== user.role) {
-			setEditError('You cannot change your own role.');
+			setEditError(t('You cannot change your own role.'));
 			return;
 		}
 		if (user.role === Role.Admin && adminCount <= 1 && input.role !== Role.Admin) {
-			setEditError('The last admin cannot be made a viewer.');
+			setEditError(t('The last admin cannot be made a viewer.'));
 			return;
 		}
 		setEditing(true);
 		setEditError(null);
 		const result = await usersApi.update(user.id, input);
 		if (result.error) {
-			setEditError(actionErrorMessage(result.error, 'Failed to update the user.'));
+			setEditError(actionErrorMessage(result.error, t('Failed to update the user.')));
 			setEditing(false);
 			return;
 		}
@@ -160,14 +165,14 @@ export const UsersManager = () => {
 			setError(null);
 			const result = await invitationsApi.resetPassword(user.id);
 			if (result.error) {
-				setError(result.message ?? 'Failed to reset the password.');
+				setError(result.message ?? t('Failed to reset the password.'));
 				setBusyId(null);
 				return;
 			}
 			const [listed, invited] = await Promise.all([usersApi.list(), invitationsApi.list()]);
 			setUsers(listed.users);
 			if (listed.error) setError(listed.error);
-			if (invited.error) setError(invited.message ?? 'Failed to load invitations.');
+			if (invited.error) setError(invited.message ?? t('Failed to load invitations.'));
 			else setInvitations(invited.invitations);
 			setBusyId(null);
 		})();
@@ -179,7 +184,7 @@ export const UsersManager = () => {
 			setError(null);
 			const result = await invitationsApi.remove(invitation.id);
 			if (result.error) {
-				setError(result.message ?? 'Failed to delete the invitation.');
+				setError(result.message ?? t('Failed to delete the invitation.'));
 				setBusyId(null);
 				return;
 			}
@@ -191,7 +196,7 @@ export const UsersManager = () => {
 	const columns: TableColumn<User>[] = [
 		{
 			key: 'user',
-			header: 'User',
+			header: t('User'),
 			cell: (user) => (
 				<div>
 					<div className="font-medium">{user.name || '—'}</div>
@@ -201,14 +206,14 @@ export const UsersManager = () => {
 		},
 		{
 			key: 'role',
-			header: 'Role',
+			header: t('Role'),
 			width: 'w-32',
 			nowrap: true,
-			cell: (user) => (user.role === Role.Admin ? 'Admin' : 'Viewer'),
+			cell: (user) => (user.role === Role.Admin ? t('Admin') : t('Viewer')),
 		},
 		{
 			key: 'actions',
-			header: 'Actions',
+			header: t('Actions'),
 			width: 'w-16',
 			nowrap: true,
 			headerClassName: 'text-right',
@@ -223,7 +228,7 @@ export const UsersManager = () => {
 						<PopoverMenu
 							items={[
 								{
-									label: 'Edit',
+									label: t('Edit'),
 									icon: <Icon name={IconName.Pencil} className="h-3.5 w-3.5" />,
 									onClick: () => {
 										setEditError(null);
@@ -231,13 +236,13 @@ export const UsersManager = () => {
 									},
 								},
 								{
-									label: 'Reset Password',
+									label: t('Reset Password'),
 									icon: <Icon name={IconName.Key} className="h-3.5 w-3.5" />,
 									onClick: () => resetPassword(user),
 									disabled: isSelf,
 								},
 								{
-									label: 'Delete',
+									label: t('Delete'),
 									icon: <Icon name={IconName.Trash} className="h-3.5 w-3.5" />,
 									onClick: () => void deleteUser(user),
 									disabled: isLastAdmin,
@@ -252,7 +257,9 @@ export const UsersManager = () => {
 									type="button"
 									disabled={busy}
 									onClick={toggle}
-									aria-label={`Actions for ${user.name || user.email}`}
+									aria-label={t('Actions for {name}', {
+										name: user.name || user.email,
+									})}
 								>
 									<Icon name={IconName.DotsVertical} className="h-4 w-4" />
 								</Button>
@@ -267,40 +274,40 @@ export const UsersManager = () => {
 	const invitationColumns: TableColumn<Invitation>[] = [
 		{
 			key: 'email',
-			header: 'Email',
+			header: t('Email'),
 			cell: (invitation) => invitation.email,
 		},
 		{
 			key: 'kind',
-			header: 'Type',
+			header: t('Type'),
 			width: 'w-36',
 			nowrap: true,
-			cell: (invitation) => invitationKindLabel[invitation.kind],
+			cell: (invitation) => t(invitationKindLabel[invitation.kind]),
 		},
 		{
 			key: 'role',
-			header: 'Role',
+			header: t('Role'),
 			width: 'w-28',
 			nowrap: true,
-			cell: (invitation) => (invitation.role === Role.Admin ? 'Admin' : 'Viewer'),
+			cell: (invitation) => (invitation.role === Role.Admin ? t('Admin') : t('Viewer')),
 		},
 		{
 			key: 'status',
-			header: 'Status',
+			header: t('Status'),
 			width: 'w-28',
 			nowrap: true,
-			cell: (invitation) => invitationStatusLabel[invitation.status],
+			cell: (invitation) => t(invitationStatusLabel[invitation.status]),
 		},
 		{
 			key: 'expires',
-			header: 'Expires',
+			header: t('Expires'),
 			width: 'w-40',
 			nowrap: true,
-			cell: (invitation) => formatDate(invitation.expires_at, 'MMM DD YYYY HH:mm'),
+			cell: (invitation) => formatDate(invitation.expires_at, 'MMM DD YYYY HH:mm', locale),
 		},
 		{
 			key: 'link',
-			header: 'Link',
+			header: t('Link'),
 			truncate: true,
 			maxWidthClass: 'max-w-md',
 			title: (invitation) => invitation.url ?? '',
@@ -321,7 +328,7 @@ export const UsersManager = () => {
 		},
 		{
 			key: 'actions',
-			header: 'Actions',
+			header: t('Actions'),
 			width: 'w-28',
 			nowrap: true,
 			headerClassName: 'text-right',
@@ -334,7 +341,7 @@ export const UsersManager = () => {
 						disabled={busyId === invitation.id}
 						onClick={() => deleteInvitation(invitation)}
 					>
-						Delete
+						{t('Delete')}
 					</Button>
 				</div>
 			),
@@ -346,15 +353,15 @@ export const UsersManager = () => {
 			<div className="mx-auto max-w-6xl">
 				<div className="mb-4">
 					<h1 className="mb-1 text-lg font-semibold text-heading dark:text-zinc-100">
-						Users
+						{t('Users')}
 					</h1>
 					<p className="text-xs text-secondary">
-						Admins manage users; viewers can read the other pages and use chat.
+						{t('Admins manage users; viewers can read the other pages and use chat.')}
 					</p>
 				</div>
 
 				{loading ? (
-					<div role="status" aria-label="Loading users">
+					<div role="status" aria-label={t('Loading users')}>
 						<SkeletonTable columns={3} rows={8} />
 					</div>
 				) : (
@@ -363,7 +370,7 @@ export const UsersManager = () => {
 						rows={users}
 						rowKey={(user) => user.id}
 						layout="auto"
-						emptyMessage="No Users Found"
+						emptyMessage={t('No Users Found')}
 					/>
 				)}
 
@@ -373,12 +380,12 @@ export const UsersManager = () => {
 					<div className="mb-3 flex items-start justify-between gap-4">
 						<div className="min-w-0">
 							<h2 className="mb-1 text-sm font-semibold text-heading dark:text-zinc-100">
-								Invitations
+								{t('Invitations')}
 							</h2>
 							<p className="text-xs text-secondary">
-								Invite by email. Copy the link and send it yourself — they set a
-								password on it. A join invite creates the account; a reset invite
-								only changes the password.
+								{t(
+									'Invite by email. Copy the link and send it yourself — they set a password on it. A join invite creates the account; a reset invite only changes the password.',
+								)}
 							</p>
 						</div>
 						<Button
@@ -391,11 +398,11 @@ export const UsersManager = () => {
 							}}
 						>
 							<Icon name={IconName.Plus} className="mr-1.5 h-4 w-4" />
-							Invite
+							{t('Invite')}
 						</Button>
 					</div>
 					{loading ? (
-						<div role="status" aria-label="Loading invitations">
+						<div role="status" aria-label={t('Loading invitations')}>
 							<SkeletonTable columns={5} rows={4} />
 						</div>
 					) : (
@@ -404,7 +411,7 @@ export const UsersManager = () => {
 							rows={invitations}
 							rowKey={(invitation) => invitation.id}
 							layout="auto"
-							emptyMessage="No Invitations"
+							emptyMessage={t('No Invitations')}
 						/>
 					)}
 				</div>
@@ -438,13 +445,16 @@ export const UsersManager = () => {
 
 			<ConfirmModal
 				open={pendingDeleteUser !== null}
-				title="Delete User"
+				title={t('Delete User')}
 				message={
 					pendingDeleteUser == null
 						? ''
-						: `Delete user "${pendingDeleteUser.name || pendingDeleteUser.email}"? This permanently removes the account and its data.`
+						: t(
+								'Delete user "{name}"? This permanently removes the account and its data.',
+								{ name: pendingDeleteUser.name || pendingDeleteUser.email },
+							)
 				}
-				confirmLabel="Delete"
+				confirmLabel={t('Delete')}
 				onConfirm={confirmDeleteUser}
 				onCancel={() => {
 					if (pendingDeleteUser == null || busyId !== pendingDeleteUser.id) {

@@ -2,6 +2,9 @@
 // All rights reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+'use client';
+
+import { useTranslations } from '@/i18n/LocaleProvider';
 import type { OwnerKind } from '@/types/owners';
 
 export type OwnerOption = {
@@ -30,6 +33,8 @@ export const OwnersSelect = ({
 	onChange: (ownerId: string) => void;
 	disabled?: boolean;
 }) => {
+	const t = useTranslations();
+
 	const users = owners.filter((owner) => owner.kind === 'user');
 	const groups = owners.filter((owner) => owner.kind === 'group');
 	return (
@@ -38,11 +43,11 @@ export const OwnersSelect = ({
 			value={value}
 			disabled={disabled}
 			onChange={(event) => onChange(event.target.value)}
-			aria-label="Owner"
+			aria-label={t('Owner')}
 		>
-			<option value="">Unassigned</option>
+			<option value="">{t('Unassigned')}</option>
 			{users.length > 0 && (
-				<optgroup label="Users">
+				<optgroup label={t('Users')}>
 					{users.map((owner) => (
 						<option key={owner.id} value={owner.id}>
 							{owner.name}
@@ -51,7 +56,7 @@ export const OwnersSelect = ({
 				</optgroup>
 			)}
 			{groups.length > 0 && (
-				<optgroup label="Groups">
+				<optgroup label={t('Groups')}>
 					{groups.map((owner) => (
 						<option key={owner.id} value={owner.id}>
 							{owner.name}

@@ -4,6 +4,7 @@
 
 'use client';
 
+import { useTranslations } from '@/i18n/LocaleProvider';
 import { useEffect, useState } from 'react';
 import NextLink from 'next/link';
 
@@ -54,6 +55,8 @@ export const RelationshipsModal = ({
 	onFocus,
 	focusableNodeIds,
 }: RelationshipsModalProps) => {
+	const t = useTranslations();
+
 	const nodeId = node?.id ?? null;
 	const [rows, setRows] = useState<ExplorationNode[]>([]);
 	const [total, setTotal] = useState(0);
@@ -77,7 +80,7 @@ export const RelationshipsModal = ({
 			});
 			if (cancelled) return;
 			if (response.error) {
-				setError(response.message ?? 'Failed to load related entities');
+				setError(response.message ?? t('Failed to load related entities'));
 			} else {
 				setRows(response.data ?? []);
 				setTotal(response.total ?? 0);
@@ -89,12 +92,12 @@ export const RelationshipsModal = ({
 		return () => {
 			cancelled = true;
 		};
-	}, [node, pageSize, skip]);
+	}, [node, pageSize, skip, t]);
 
 	const columns: TableColumn<ExplorationNode>[] = [
 		{
 			key: 'type',
-			header: 'Type',
+			header: t('Type'),
 			width: 'w-24',
 			cell: (row) => (
 				<div className="flex items-center gap-1.5 capitalize">
@@ -107,21 +110,21 @@ export const RelationshipsModal = ({
 						className="h-4 w-4 text-body dark:text-zinc-300"
 					/>
 					{row.layer === ExplorationLayer.Semantic
-						? 'Term'
+						? t('Term')
 						: catalogNodeInfo[row.nodeType].title}
 				</div>
 			),
 		},
 		{
 			key: 'name',
-			header: 'Name',
+			header: t('Name'),
 			cell: (row) => row.name,
 			title: (row) => row.name,
 			truncate: true,
 		},
 		{
 			key: 'relationships',
-			header: 'Relationships',
+			header: t('Relationships'),
 			width: 'w-32',
 			cell: (row) => row.relationshipCount,
 		},
@@ -145,8 +148,8 @@ export const RelationshipsModal = ({
 					<NextLink
 						href={href}
 						className="flex h-6 w-6 items-center justify-center rounded text-secondary transition-colors hover:bg-zinc-100 hover:text-[#76b900] dark:hover:bg-zinc-700"
-						aria-label={`Open ${row.name}`}
-						title={`Open ${row.name}`}
+						aria-label={t('Open {name}', { name: row.name })}
+						title={t('Open {name}', { name: row.name })}
 					>
 						<Icon name={IconName.ExternalLink} className="h-3.5 w-3.5" />
 					</NextLink>
@@ -155,7 +158,7 @@ export const RelationshipsModal = ({
 		},
 		{
 			key: 'focus',
-			header: 'Focus',
+			header: t('Focus'),
 			width: 'w-20',
 			cell: (row) => {
 				// The graph is capped at a fixed number of nodes, so a related
@@ -171,11 +174,11 @@ export const RelationshipsModal = ({
 						disabled={!focusable}
 						title={
 							focusable
-								? `Focus ${row.name} on the graph`
+								? t('Focus {name} on the graph', { name: row.name })
 								: `${row.name} is not shown on the current graph`
 						}
 					>
-						Focus
+						{t('Focus')}
 					</Button>
 				);
 			},
@@ -191,7 +194,8 @@ export const RelationshipsModal = ({
 						className="h-5 w-5 shrink-0 text-body dark:text-zinc-300"
 					/>
 					<Text as="h2" variant={TextVariant.Heading}>
-						{node?.name} — Related Entities ({total})
+						{node?.name} {t('— Related Entities (')}
+						{total})
 					</Text>
 				</div>
 				<Button
@@ -200,14 +204,14 @@ export const RelationshipsModal = ({
 					iconOnly
 					type="button"
 					onClick={onClose}
-					aria-label="Close related entities"
+					aria-label={t('Close related entities')}
 				>
 					<Icon name={IconName.Close} className="h-4 w-4" />
 				</Button>
 			</header>
 			<div className="max-h-[70dvh] overflow-y-auto p-5">
 				{loading ? (
-					<div role="status" aria-label="Loading related entities">
+					<div role="status" aria-label={t('Loading related entities')}>
 						<SkeletonTable columns={columns.length} rows={pageRowCount} />
 					</div>
 				) : error != null ? (
@@ -219,7 +223,7 @@ export const RelationshipsModal = ({
 						rowKey={(row) => row.id}
 						pagination={pagination}
 						containerClassName="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700"
-						emptyMessage="No Related Entities"
+						emptyMessage={t('No Related Entities')}
 					/>
 				)}
 			</div>

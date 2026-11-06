@@ -4,6 +4,7 @@
 
 'use client';
 
+import { LanguageSwitcher } from '@/i18n/LanguageSwitcher';
 import { Icon, IconName } from '@/common/icons';
 import { Breadcrumbs } from '@/common/Breadcrumbs';
 import { GlobalSearch } from '@/common/GlobalSearch';
@@ -20,6 +21,7 @@ export const AppTopBar = ({ version }: { version?: string }) => {
 			<div className="ml-auto flex items-center gap-3">
 				{rightSlot ? <div className="flex items-center gap-2">{rightSlot}</div> : null}
 				<GlobalSearch />
+				<LanguageSwitcher />
 				<UserMenu version={version} />
 			</div>
 		</header>
