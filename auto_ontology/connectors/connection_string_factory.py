@@ -18,6 +18,7 @@ from urllib.parse import quote
 DEFAULT_POSTGRES_PORT = "5432"
 DEFAULT_MYSQL_PORT = "3306"
 DEFAULT_HEAVYDB_PORT = "6274"
+DEFAULT_HIVE_PORT = "10000"
 DEFAULT_KYUUBI_PORT = "10000"
 DEFAULT_TRINO_PORT = "8080"
 DEFAULT_CLICKHOUSE_PORT = "8123"
@@ -116,6 +117,55 @@ def build_connection_string(connection: Mapping[str, Any]) -> str:
         if federated:
             url += "&auth=sso"
         return url
+
+    if conn_type == "hive":
+        host = _require(connection, "host").rstrip("/")
+        if host.startswith(("https://", "http://")):
+            host = host.split("://", 1)[1]
+        database = _require(connection, "database")
+        port = str(connection.get("port") or "").strip() or DEFAULT_HIVE_PORT
+
+        # Both credentials are optional: HiveServer2 auth=NONE takes a username
+        # label at most, while LDAP/CUSTOM needs username plus password. A
+        # supplied password selects SASL PLAIN unless auth is set explicitly.
+        user = str(connection.get("user") or "").strip()
+        password = str(connection.get("password") or "").strip()
+        authority = ""
+        if user:
+            authority = _enc(user)
+            if password:
+                authority += f":{_enc(password)}"
+            authority += "@"
+
+        auth = str(connection.get("auth") or "").strip().upper() or (
+            "LDAP" if password else "NONE"
+        )
+        params = [f"auth={_enc(auth)}"]
+
+        # A truststore only makes sense over TLS, so it implies ssl=true.
+        truststore_file = str(connection.get("truststore_file") or "").strip()
+        truststore = str(connection.get("truststore") or "").strip()
+        use_ssl = str(connection.get("ssl") or "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+        if truststore_file:
+            params.append(f"truststore_data={_enc(truststore_file)}")
+        elif truststore:
+            params.append(f"truststore={_enc(truststore)}")
+        if truststore_file or truststore:
+            use_ssl = True
+            truststore_password = str(
+                connection.get("truststore_password") or ""
+            ).strip()
+            if truststore_password:
+                params.append(f"truststore_password={_enc(truststore_password)}")
+        if use_ssl:
+            params.append("ssl=true")
+
+        return f"hive://{authority}{host}:{port}/{_enc(database)}?{'&'.join(params)}"
 
     if conn_type == "kyuubi":
         host = _require(connection, "host").rstrip("/")

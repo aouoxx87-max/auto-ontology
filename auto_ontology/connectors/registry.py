@@ -19,6 +19,7 @@ from auto_ontology.connectors.clickhouse import ClickHouseDatabase
 from auto_ontology.connectors.databricks import DatabricksDatabase
 from auto_ontology.connectors.duckdb import DuckDBDatabase
 from auto_ontology.connectors.heavydb import HeavyDBDatabase
+from auto_ontology.connectors.hive import HiveDatabase
 from auto_ontology.connectors.kyuubi import KyuubiDatabase
 from auto_ontology.connectors.mysql import MySQLDatabase
 from auto_ontology.connectors.postgres import PostgresDatabase
@@ -50,6 +51,7 @@ CONNECTOR_REGISTRY: dict[str, type[SQLDatabase]] = {
     "snowflake": SnowflakeDatabase,
     "clickhouse": ClickHouseDatabase,
     "heavydb": HeavyDBDatabase,
+    "hive": HiveDatabase,
     "kyuubi": KyuubiDatabase,
     "sqlite": SQLiteDatabase,
     "trino": TrinoDatabase,

@@ -49,6 +49,7 @@ The URL scheme selects the connector:
 | Snowflake     | `snowflake://`              | yes           |
 | ClickHouse    | `clickhouse://`             | yes           |
 | Trino         | `trino://`                  | yes           |
+| Apache Hive   | `hive://`                   | yes           |
 | Apache Kyuubi | `kyuubi://`                 | yes           |
 | HeavyDB       | `heavydb://`                | yes           |
 | DuckDB        | `duckdb://`                 | no            |
