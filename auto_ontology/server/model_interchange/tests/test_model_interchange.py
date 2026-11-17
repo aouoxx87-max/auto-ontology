@@ -426,6 +426,38 @@ def test_export_model_all_databases_uses_empty_filter(
 )
 @patch("auto_ontology.server.model_interchange.service.dal.fetch_export_rows")
 @patch("auto_ontology.server.model_interchange.service.dal.validate_database_ids")
+def test_export_yaml_emits_non_ascii_text_verbatim(
+    _mock_validate: MagicMock,
+    mock_fetch: MagicMock,
+    _mock_resolver: MagicMock,
+) -> None:
+    """CJK descriptions are written as readable text, not \\uXXXX escapes.
+
+    Both forms are valid YAML and re-parse identically; allow_unicode only
+    keeps the exported file readable in a text editor.
+    """
+    rows = _export_rows()
+    rows["catalog"][0]["column_description"] = "订单标识"
+    mock_fetch.return_value = rows
+
+    yaml_text = service.export_model(ExportRequest(databases=[]))
+
+    assert "订单标识" in yaml_text
+    assert r"\u8BA2" not in yaml_text
+    assert (
+        yaml.safe_load(yaml_text)["data_layer"]["databases"][0]["schemas"][0]["tables"][
+            0
+        ]["columns"][0]["description"]
+        == "订单标识"
+    )
+
+
+@patch(
+    "auto_ontology.server.model_interchange.service.dal.make_cached_sql_column_resolver",
+    return_value=lambda *args, **kwargs: [],
+)
+@patch("auto_ontology.server.model_interchange.service.dal.fetch_export_rows")
+@patch("auto_ontology.server.model_interchange.service.dal.validate_database_ids")
 def test_export_model_ossie_format_emits_ossie_document(
     _mock_validate: MagicMock,
     mock_fetch: MagicMock,

@@ -159,6 +159,10 @@ def _dump_yaml(document: AutoOntologyModelDocument) -> str:
         document.model_dump(mode="python"),
         sort_keys=False,
         default_flow_style=False,
+        # Emit non-ASCII text (e.g. CJK descriptions) verbatim instead of
+        # \uXXXX escapes. Both forms are valid YAML and re-parse identically;
+        # this only makes the exported file human-readable in a text editor.
+        allow_unicode=True,
     )
 
 
