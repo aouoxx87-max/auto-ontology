@@ -245,6 +245,52 @@ def test_changed_column_type_is_updated_in_place(source_db: str) -> None:
     )
 
 
+def test_column_comment_added_upstream_backfills_description(
+    source_db: str,
+) -> None:
+    """A source that only starts reporting a comment must fill columns that
+    were ingested earlier (e.g. a connector that just learned to read them,
+    as Hive's did)."""
+    _ingest(source_db)
+    assert catalog.column_property(source_db, "customer", "name", "description") is None
+
+    _mutate(
+        source_db,
+        "COMMENT ON COLUMN shop.customer.name IS 'Customer display name'",
+    )
+    _ingest(source_db)
+
+    assert (
+        catalog.column_property(source_db, "customer", "name", "description")
+        == "Customer display name"
+    )
+
+
+def test_a_curated_description_survives_a_reingest(source_db: str) -> None:
+    """coalesce keeps the UI-curated description even when the source later
+    reports a different comment."""
+    _ingest(source_db)
+    catalog._pg(  # noqa: SLF001 - test-only write standing in for UI curation
+        "UPDATE catalog_column c "
+        "SET description = 'Curated by hand' "
+        "FROM catalog_table t, catalog_schema s, catalog_database d "
+        "WHERE c.table_id = t.id AND t.schema_id = s.id AND s.database_id = d.id "
+        "AND d.name = :db AND t.name = 'customer' AND c.name = 'name'",
+        db=source_db,
+    )
+
+    _mutate(
+        source_db,
+        "COMMENT ON COLUMN shop.customer.name IS 'Something different upstream'",
+    )
+    _ingest(source_db)
+
+    assert (
+        catalog.column_property(source_db, "customer", "name", "description")
+        == "Curated by hand"
+    )
+
+
 def test_added_then_dropped_table_leaves_no_trace(source_db: str) -> None:
     _ingest(source_db)
     baseline = catalog.entity_counts(source_db)

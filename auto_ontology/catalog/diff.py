@@ -208,7 +208,11 @@ def update_diff_from_existing_schema(new_schema, latest_timestamp):
             suffixes=("_graph", "_files"),
         )
 
-        list_of_props = ["data_type", "is_nullable"]
+        # description is compared too: a source that only started reporting
+        # comments (or a connector that just learned to read them) must backfill
+        # columns ingested earlier. update_properties_in_graph_batch coalesces,
+        # so a curated description still wins over the source value.
+        list_of_props = ["data_type", "is_nullable", "description"]
         if len(list_of_props) > 0:
             column_diffs = []
             for prop in list_of_props:

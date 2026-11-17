@@ -15,7 +15,8 @@ implementation:
   ``schema.table`` default -- no catalog is prepended the way Kyuubi needs.
 * Hive has no ``information_schema``; metadata comes from ``SHOW TABLES IN`` and
   per-table ``DESCRIBE``. Hive reports no primary keys, foreign keys, or query
-  history, and ``DESCRIBE`` does not report nullability.
+  history, and ``DESCRIBE`` does not report nullability; its third column, the
+  column comment, is carried over as the column description.
 
 Authentication is SASL PLAIN for ``LDAP``/``CUSTOM`` and an unauthenticated
 transport for ``NONE``. Kerberos (GSSAPI) is intentionally out of scope for the
@@ -83,6 +84,10 @@ _COLUMN_SCHEMA = [
     "table_name",
     "column_name",
     "data_type",
+    # Hive column comment from DESCRIBE's third column. The catalog stores it
+    # on the Column node and the model export serialises it as the column
+    # description.
+    "description",
     "is_nullable",
     "ordinal_position",
 ]
@@ -485,12 +490,12 @@ class HiveDatabase(SQLDatabase):
         # builds that additionally report a type column still work.
         return [str(name) for name in frame.iloc[:, 0].tolist() if str(name)]
 
-    def _describe(self, table: str) -> list[tuple[str, str]]:
-        """Return ``(column_name, data_type)`` pairs for one table.
+    def _describe(self, table: str) -> list[tuple[str, str, str | None]]:
+        """Return ``(column_name, data_type, comment)`` triples for one table.
 
         Hive has no queryable ``information_schema``, so each relation is
         described individually and the trailing partition/detailed sections are
-        discarded.
+        discarded. A blank comment comes back as ``None``.
         """
         qualified = self.qualify(self._database, table)
         try:
@@ -507,7 +512,7 @@ class HiveDatabase(SQLDatabase):
         if frame.empty:
             return []
 
-        columns: list[tuple[str, str]] = []
+        columns: list[tuple[str, str, str | None]] = []
         for record in frame.itertuples(index=False):
             values = list(record)
             name = str(values[0] or "").strip()
@@ -516,7 +521,9 @@ class HiveDatabase(SQLDatabase):
             data_type = str(values[1] or "").strip() if len(values) > 1 else ""
             if not data_type:
                 continue
-            columns.append((name, data_type))
+            raw_comment = values[2] if len(values) > 2 else None
+            comment = str(raw_comment).strip() if raw_comment is not None else None
+            columns.append((name, data_type, comment or None))
         return columns
 
     def _introspect(self) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -554,13 +561,14 @@ class HiveDatabase(SQLDatabase):
                     "table_type": TableTypes.BASE_TABLE,
                 }
             )
-            for position, (name, data_type) in enumerate(columns, start=1):
+            for position, (name, data_type, comment) in enumerate(columns, start=1):
                 column_rows.append(
                     {
                         "table_schema": self._database,
                         "table_name": table,
                         "column_name": name,
                         "data_type": data_type,
+                        "description": comment,
                         # DESCRIBE reports no nullability; NULL means "unknown",
                         # which the catalog treats as nullable.
                         "is_nullable": None,

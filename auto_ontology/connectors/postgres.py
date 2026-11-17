@@ -200,6 +200,9 @@ class PostgresDatabase(SQLDatabase):
                 c.relname                        AS table_name,
                 a.attname                        AS column_name,
                 format_type(a.atttypid, NULL)    AS data_type,
+                -- Column comment set with COMMENT ON COLUMN, exported as
+                -- description; NULL for columns without one.
+                col_description(c.oid, a.attnum) AS description,
                 NOT a.attnotnull                 AS is_nullable,
                 row_number() OVER (
                     PARTITION BY c.oid ORDER BY a.attnum

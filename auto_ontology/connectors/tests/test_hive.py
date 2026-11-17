@@ -133,7 +133,7 @@ DESCRIBED = pd.DataFrame(
     {
         "col_name": ["id", "amount", "", "# Partition Information", "dt"],
         "data_type": ["bigint", "decimal(10,2)", "", "# col_name", "string"],
-        "comment": [None, None, None, None, None],
+        "comment": ["order primary key", "paid amount", None, None, "partition day"],
     }
 )
 
@@ -159,8 +159,20 @@ def test_get_tables_and_columns_parse_show_and_describe() -> None:
     assert list(orders["column_name"]) == ["id", "amount"]
     assert list(orders["data_type"]) == ["bigint", "decimal(10,2)"]
     assert list(orders["ordinal_position"]) == [1, 2]
+    # DESCRIBE's third column is the Hive column comment; it must survive into
+    # the catalog frame as the column description.
+    assert list(orders["description"]) == ["order primary key", "paid amount"]
     # DESCRIBE reports no nullability: the connector sends NULL, not a string.
     assert orders["is_nullable"].isna().all()
+    assert list(columns.columns) == [
+        "table_schema",
+        "table_name",
+        "column_name",
+        "data_type",
+        "description",
+        "is_nullable",
+        "ordinal_position",
+    ]
 
     assert any(sql.startswith("SHOW TABLES IN `sales`") for sql in issued)
     assert "DESCRIBE `sales`.`orders`" in issued
@@ -180,6 +192,50 @@ def test_introspection_is_cached() -> None:
     db.get_tables()
     assert sum("SHOW TABLES" in sql for sql in issued) == 1
     assert sum(sql.startswith("DESCRIBE") for sql in issued) == 1
+
+
+def test_describe_without_a_comment_column_yields_null_descriptions() -> None:
+    """Some HiveServer2-compatible engines return only col_name/data_type."""
+    db = _database()
+    described = pd.DataFrame(
+        {
+            "col_name": ["id", "amount"],
+            "data_type": ["bigint", "decimal(10,2)"],
+        }
+    )
+    _stub_execute(
+        db,
+        {
+            "SHOW TABLES": pd.DataFrame({"tab_name": ["orders"]}),
+            "DESCRIBE": described,
+        },
+    )
+
+    columns = db.get_columns()
+    orders = columns[columns["table_name"] == "orders"]
+    assert list(orders["description"]) == [None, None]
+
+
+def test_blank_comments_become_none() -> None:
+    db = _database()
+    described = pd.DataFrame(
+        {
+            "col_name": ["id", "note"],
+            "data_type": ["bigint", "string"],
+            "comment": ["  ", ""],
+        }
+    )
+    _stub_execute(
+        db,
+        {
+            "SHOW TABLES": pd.DataFrame({"tab_name": ["orders"]}),
+            "DESCRIBE": described,
+        },
+    )
+
+    columns = db.get_columns()
+    orders = columns[columns["table_name"] == "orders"]
+    assert list(orders["description"]) == [None, None]
 
 
 def test_an_undescribable_table_is_dropped_from_both_frames() -> None:
