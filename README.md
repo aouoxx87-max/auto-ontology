@@ -85,6 +85,23 @@ setup is to fill in `DEFAULT_MODELS_*` and override per-triplet fields only wher
 they differ (e.g. `EMBED_MODEL`, `NON_REASONING_MODEL`). `*_API_KEY` also falls
 back to the legacy `NVIDIA_API_KEY` for backward compatibility.
 
+#### OpenAI-compatible gateways
+
+Chat models are served by `ChatNVIDIA` by default. An OpenAI-compatible gateway
+that does not implement NVIDIA's endpoint catalogue — for example Volcengine
+ARK (`https://ark.<region>.volces.com/api/v3`) — must be served by the stock
+OpenAI client instead. Select it with `<PREFIX>_CLIENT=openai` (or the shared
+`DEFAULT_MODELS_CLIENT=openai`); `nvidia` is the only other value. When unset,
+the client is inferred from the endpoint, so a `volces.com` host or an
+`/api/v3` path selects `openai` automatically. The model name is sent as
+configured (e.g. an ARK endpoint id `ep-...`), with no `openai/` prefix.
+
+The selector applies to the `REASONING` and `NON_REASONING` chat roles only.
+`EMBED` and `RERANK` already speak vendor-neutral OpenAI/NIM HTTP, but they
+still need models that actually serve those APIs — a chat endpoint id cannot
+embed text, so point `EMBED_MODEL`/`EMBED_ENDPOINT` at a separate embedding
+endpoint when using such a gateway.
+
 ## Language support
 
 The Web UI supports English and Simplified Chinese. Choose a language in the top-right selector; the choice persists in your browser. First visits use your browser's language preference, with English as the fallback.

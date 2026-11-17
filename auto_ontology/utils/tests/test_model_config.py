@@ -22,6 +22,8 @@ def clean_env(monkeypatch: pytest.MonkeyPatch) -> pytest.MonkeyPatch:
             monkeypatch.delenv(f"{prefix}_{field}", raising=False)
     for name in _LEGACY:
         monkeypatch.delenv(name, raising=False)
+    for prefix in _PREFIXES:
+        monkeypatch.delenv(f"{prefix}_CLIENT", raising=False)
     return monkeypatch
 
 
@@ -68,3 +70,77 @@ def test_an_explicit_setting_wins_over_the_default(
     clean_env.setenv("REASONING_MODEL", "nvidia/some-other-model")
 
     assert model_config.resolve("REASONING", "MODEL") == "nvidia/some-other-model"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("openai", "openai"),
+        ("OPENAI", "openai"),
+        ("openai-compatible", "openai"),
+        ("chatopenai", "openai"),
+        ("nvidia", "nvidia"),
+        ("ChatNVIDIA", "nvidia"),
+    ],
+)
+def test_client_env_var_selects_the_chat_client(
+    clean_env: pytest.MonkeyPatch, value: str, expected: str
+) -> None:
+    clean_env.setenv("REASONING_CLIENT", value)
+
+    assert model_config.resolve_client("REASONING") == expected
+
+
+def test_default_models_client_applies_to_every_role(
+    clean_env: pytest.MonkeyPatch,
+) -> None:
+    clean_env.setenv("DEFAULT_MODELS_CLIENT", "openai")
+
+    assert model_config.resolve_client("REASONING") == "openai"
+    assert model_config.resolve_client("NON_REASONING") == "openai"
+
+
+def test_role_client_overrides_the_shared_default(
+    clean_env: pytest.MonkeyPatch,
+) -> None:
+    clean_env.setenv("DEFAULT_MODELS_CLIENT", "openai")
+    clean_env.setenv("NON_REASONING_CLIENT", "nvidia")
+
+    assert model_config.resolve_client("REASONING") == "openai"
+    assert model_config.resolve_client("NON_REASONING") == "nvidia"
+
+
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "https://ark.cn-beijing.volces.com/api/v3",
+        "https://ark.cn-beijing.volces.com/api/v3/",
+    ],
+)
+def test_a_volces_ark_endpoint_implies_openai(
+    clean_env: pytest.MonkeyPatch, endpoint: str
+) -> None:
+    clean_env.setenv("REASONING_ENDPOINT", endpoint)
+
+    assert model_config.resolve_client("REASONING") == "openai"
+
+
+def test_an_api_v3_path_implies_openai(clean_env: pytest.MonkeyPatch) -> None:
+    clean_env.setenv("REASONING_ENDPOINT", "https://gateway.example.com/api/v3")
+
+    assert model_config.resolve_client("REASONING") == "openai"
+
+
+def test_an_nvidia_endpoint_keeps_chatnvidia(clean_env: pytest.MonkeyPatch) -> None:
+    clean_env.setenv("REASONING_ENDPOINT", "https://integrate.api.nvidia.com/v1")
+
+    assert model_config.resolve_client("REASONING") == "nvidia"
+
+
+def test_an_unknown_client_value_falls_back_to_endpoint_inference(
+    clean_env: pytest.MonkeyPatch,
+) -> None:
+    clean_env.setenv("REASONING_CLIENT", "mystery")
+    clean_env.setenv("REASONING_ENDPOINT", "https://ark.volces.com/api/v3")
+
+    assert model_config.resolve_client("REASONING") == "openai"

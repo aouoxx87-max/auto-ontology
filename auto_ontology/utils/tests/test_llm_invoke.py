@@ -497,3 +497,77 @@ def test_missing_reasoning_client_keeps_the_original_failure(monkeypatch: Any) -
     monkeypatch.setattr(llm_invoke, "get_llm_client", unavailable)
 
     assert llm_invoke.invoke_with_structured_output(primary, [], _Schema) is None
+
+
+def test_build_client_routes_an_openai_compatible_role_to_chatopenai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Volcengine ARK-style roles (client="openai") must not use ChatNVIDIA.
+
+    ChatNVIDIA probes ``<base_url>/v1/models`` on construction, which an
+    OpenAI-compatible gateway answers with 404.
+    """
+    sentinel = object()
+    openai_ctor = MagicMock(return_value=sentinel)
+    nvidia_ctor = MagicMock()
+    monkeypatch.setattr("langchain_openai.ChatOpenAI", openai_ctor)
+    monkeypatch.setattr("langchain_nvidia_ai_endpoints.ChatNVIDIA", nvidia_ctor)
+
+    client = llm_invoke._build_client(
+        model="ep-20260810212751-psfwz",
+        api_key="ark-key",
+        base_url="https://ark.cn-beijing.volces.com/api/v3",
+        temperature=0.0,
+        max_tokens=8192,
+        client="openai",
+    )
+
+    assert client is sentinel
+    nvidia_ctor.assert_not_called()
+    kwargs = openai_ctor.call_args.kwargs
+    assert kwargs["model"] == "ep-20260810212751-psfwz"
+    assert kwargs["api_key"] == "ark-key"
+    assert kwargs["base_url"] == "https://ark.cn-beijing.volces.com/api/v3"
+
+
+def test_build_client_defaults_to_chatnvidia(monkeypatch: pytest.MonkeyPatch) -> None:
+    sentinel = MagicMock()
+    openai_ctor = MagicMock()
+    nvidia_ctor = MagicMock(return_value=sentinel)
+    monkeypatch.setattr("langchain_openai.ChatOpenAI", openai_ctor)
+    monkeypatch.setattr("langchain_nvidia_ai_endpoints.ChatNVIDIA", nvidia_ctor)
+
+    client = llm_invoke._build_client(
+        model="nvidia/nemotron-3.5-lightning-30b-a3b",
+        api_key="nvapi-test",
+        base_url="https://integrate.api.nvidia.com/v1",
+        temperature=0.0,
+        max_tokens=8192,
+    )
+
+    assert client is sentinel
+    openai_ctor.assert_not_called()
+    assert nvidia_ctor.call_args.kwargs["model"] == (
+        "nvidia/nemotron-3.5-lightning-30b-a3b"
+    )
+
+
+def test_build_client_openai_model_prefix_forces_chatopenai(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    openai_ctor = MagicMock(return_value=object())
+    nvidia_ctor = MagicMock()
+    monkeypatch.setattr("langchain_openai.ChatOpenAI", openai_ctor)
+    monkeypatch.setattr("langchain_nvidia_ai_endpoints.ChatNVIDIA", nvidia_ctor)
+
+    llm_invoke._build_client(
+        model="azure/anthropic/claude-opus-5-5",
+        api_key="sk-test",
+        base_url="https://integrate.api.nvidia.com/v1",
+        temperature=0.0,
+        max_tokens=8192,
+        client="nvidia",
+    )
+
+    openai_ctor.assert_called_once()
+    nvidia_ctor.assert_not_called()

@@ -18,7 +18,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
-from auto_ontology.utils.model_config import resolve
+from auto_ontology.utils.model_config import resolve, resolve_client
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +210,12 @@ _NON_REASONING_BASE_URL = resolve("NON_REASONING", "ENDPOINT")
 _NON_REASONING_MODEL_NAME = resolve("NON_REASONING", "MODEL")
 _NON_REASONING_API_KEY = resolve("NON_REASONING", "API_KEY")
 
+# Chat-client family ("nvidia" or "openai") for each role. OpenAI-compatible
+# gateways (e.g. Volcengine ARK) are detected from the endpoint unless a
+# ``*_CLIENT`` env var selects one explicitly.
+_CLIENT = resolve_client("REASONING")
+_NON_REASONING_CLIENT = resolve_client("NON_REASONING")
+
 
 def _build_client(
     *,
@@ -218,14 +224,16 @@ def _build_client(
     base_url: str,
     temperature: float,
     max_tokens: int,
+    client: str = "nvidia",
 ) -> BaseChatModel:
     """Build a chat client for the given model/endpoint.
 
-    OpenAI-family models (``openai/``, ``azure/``, ``aws/`` prefixes) go through
-    ``ChatOpenAI``, which supports structured output. Everything else uses
-    ``ChatNVIDIA``.
+    OpenAI-family models (``openai/``, ``azure/``, ``aws/`` prefixes) and any
+    role whose client family resolves to ``"openai"`` (an OpenAI-compatible
+    gateway such as Volcengine ARK) go through ``ChatOpenAI``, which supports
+    structured output. Everything else uses ``ChatNVIDIA``.
     """
-    if model.startswith(("openai/", "azure/", "aws/")):
+    if client == "openai" or model.startswith(("openai/", "azure/", "aws/")):
         from langchain_openai import ChatOpenAI
 
         return ChatOpenAI(
@@ -276,6 +284,7 @@ def get_llm_client(
         base_url=_BASE_URL,
         temperature=temperature,
         max_tokens=max_tokens,
+        client=_CLIENT,
     )
 
 
@@ -305,6 +314,7 @@ def get_non_reasoning_llm_client(
         base_url=_NON_REASONING_BASE_URL,
         temperature=temperature,
         max_tokens=max_tokens,
+        client=_NON_REASONING_CLIENT,
     )
     _remember_non_reasoning(client)
     return client

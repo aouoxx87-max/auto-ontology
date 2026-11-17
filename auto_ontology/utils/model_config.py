@@ -98,3 +98,68 @@ def resolve(prefix: str, field: str) -> str:
     """
     key = f"{prefix}_{field}"
     return os.environ.get(key, "") or _default(field) or _builtin_default(prefix, key)
+
+
+# Chat-client families selectable with ``<PREFIX>_CLIENT`` /
+# ``DEFAULT_MODELS_CLIENT``. ``nvidia`` is ChatNVIDIA (the default);
+# ``openai`` is the stock OpenAI client for OpenAI-compatible gateways such as
+# Volcengine ARK that do not implement the NVIDIA endpoint catalogue
+# (``/v1/models`` probing, NVIDIA parameter names).
+_CLIENT_ALIASES: dict[str, str] = {
+    "nvidia": "nvidia",
+    "chatnvidia": "nvidia",
+    "openai": "openai",
+    "openai-compatible": "openai",
+    "openai_compatible": "openai",
+    "chatopenai": "openai",
+}
+
+# Endpoint signatures that unambiguously identify a non-NVIDIA OpenAI-compatible
+# gateway. Volcengine ARK serves ``https://ark.<region>.volces.com/api/v3``; the
+# ``/api/v3`` path is ARK's OpenAI-compatible mount across its regions.
+_OPENAI_COMPATIBLE_HOST_SUFFIXES = ("volces.com",)
+_OPENAI_COMPATIBLE_PATH_PARTS = ("/api/v3",)
+
+
+def _infer_client(endpoint: str) -> str:
+    """Infer the chat-client family from *endpoint* when ``*_CLIENT`` is unset."""
+    if not endpoint:
+        return "nvidia"
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(endpoint)
+    except ValueError:
+        return "nvidia"
+    host = (parsed.hostname or "").lower()
+    if any(host.endswith(suffix) for suffix in _OPENAI_COMPATIBLE_HOST_SUFFIXES):
+        return "openai"
+    path = parsed.path.rstrip("/")
+    if any(
+        path == part.rstrip("/") or path.endswith(part)
+        for part in _OPENAI_COMPATIBLE_PATH_PARTS
+    ):
+        return "openai"
+    return "nvidia"
+
+
+def resolve_client(prefix: str) -> str:
+    """Resolve the chat-client family for *prefix*.
+
+    Order of precedence: the ``<prefix>_CLIENT`` env var, then the shared
+    ``DEFAULT_MODELS_CLIENT``, then inference from the triplet's endpoint
+    (OpenAI-compatible gateways such as Volcengine ARK), then ``"nvidia"``.
+    Unknown values fall back to inference rather than silently selecting a
+    non-existent client.
+    """
+    raw = (
+        (
+            os.environ.get(f"{prefix}_CLIENT", "")
+            or os.environ.get("DEFAULT_MODELS_CLIENT", "")
+        )
+        .strip()
+        .lower()
+    )
+    if raw in _CLIENT_ALIASES:
+        return _CLIENT_ALIASES[raw]
+    return _infer_client(resolve(prefix, "ENDPOINT"))
