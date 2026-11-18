@@ -456,3 +456,161 @@ def test_first_attempt_success_does_not_sleep() -> None:
 
     assert result is not None and not result.empty
     assert slept == []
+
+
+# ---------------------------------------------------------------------------
+# ARK multimodal embedding route (/embeddings/multimodal)
+# ---------------------------------------------------------------------------
+
+_MM_URL = "https://ark.example/api/v3/embeddings/multimodal"
+
+
+def _mm_params(**overrides: Any) -> EmbedParams:
+    fields: dict[str, Any] = {
+        "model_name": "ep-mm",
+        "embed_invoke_url": _MM_URL,
+        "api_key": "ark-test",
+    }
+    fields.update(overrides)
+    return EmbedParams(**fields)
+
+
+@pytest.fixture
+def multimodal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Callable[[Handler], list[httpx.Request]]:
+    """Route the multimodal httpx client through *handler*."""
+
+    def _install(handler: Handler) -> list[httpx.Request]:
+        seen: list[httpx.Request] = []
+
+        def _record(request: httpx.Request) -> httpx.Response:
+            seen.append(request)
+            return handler(request)
+
+        def _http_client(params: EmbedParams) -> httpx.Client:
+            headers = {"Content-Type": "application/json"}
+            if params.api_key:
+                headers["Authorization"] = f"Bearer {params.api_key}"
+            return httpx.Client(
+                headers=headers, transport=httpx.MockTransport(_record)
+            )
+
+        monkeypatch.setattr(embedding, "_http_client", _http_client)
+        monkeypatch.setattr(embedding.time, "sleep", lambda _seconds: None)
+        return seen
+
+    return _install
+
+
+def _mm_ok(request: httpx.Request) -> httpx.Response:
+    text = json.loads(request.content)["input"][0]["text"]
+    return httpx.Response(
+        200, json={"object": "list", "data": {"embedding": _vector(text)}, "model": "m"}
+    )
+
+
+def test_multimodal_route_is_detected() -> None:
+    assert embedding.is_multimodal_embedding_endpoint(
+        "https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal"
+    )
+    assert embedding.is_multimodal_embedding_endpoint(
+        "https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal/"
+    )
+    assert not embedding.is_multimodal_embedding_endpoint(
+        "https://integrate.api.nvidia.com/v1"
+    )
+    assert not embedding.is_multimodal_embedding_endpoint(
+        "https://integrate.api.nvidia.com/v1/embeddings"
+    )
+
+
+def test_multimodal_sends_content_blocks_one_request_per_text(multimodal) -> None:
+    seen = multimodal(_mm_ok)
+
+    vectors = embed_texts(["a", "bb"], _mm_params(), "passage")
+
+    assert vectors == [_vector("a"), _vector("bb")]
+    assert len(seen) == 2
+    assert seen[0].url.path.endswith("/embeddings/multimodal")
+    body0 = json.loads(seen[0].content)
+    assert body0["model"] == "ep-mm"
+    assert body0["input"] == [{"type": "text", "text": "a"}]
+    assert seen[0].headers.get("Authorization") == "Bearer ark-test"
+
+
+def test_multimodal_parses_the_single_data_dict_shape(multimodal) -> None:
+    def _handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": {"embedding": [1.0, 2.0, 3.0]}})
+
+    seen = multimodal(_handler)
+    assert embed_texts(["x"], _mm_params(), "query") == [[1.0, 2.0, 3.0]]
+    assert len(seen) == 1
+
+
+def test_multimodal_blank_texts_are_not_sent(multimodal) -> None:
+    seen = multimodal(_mm_ok)
+
+    vectors = embed_texts(["a", " ", None, "b"], _mm_params(), "passage")  # type: ignore[list-item]
+
+    assert vectors == [_vector("a"), None, None, _vector("b")]
+    assert len(seen) == 2
+
+
+def test_multimodal_preserves_order_under_concurrency(multimodal) -> None:
+    import time as _time
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        text = json.loads(request.content)["input"][0]["text"]
+        # First request finishes last, so order cannot come from completion.
+        if text == "slow":
+            _time.sleep(0.15)
+        return _mm_ok(request)
+
+    seen = multimodal(_handler)
+    vectors = embed_texts(
+        ["slow", "fast", "fast2"], _mm_params(nim_http_max_concurrent=4), "passage"
+    )
+
+    assert vectors == [_vector("slow"), _vector("fast"), _vector("fast2")]
+    assert len(seen) == 3
+
+
+def test_multimodal_a_fatal_4xx_raises_and_is_classified_fatal(multimodal) -> None:
+    seen = multimodal(
+        lambda request: httpx.Response(400, json={"error": {"message": "bad model"}})
+    )
+
+    with pytest.raises(embedding.MultimodalEmbeddingError, match="400"):
+        embed_texts(["a"], _mm_params(), "passage", retries=0)
+    assert len(seen) == 1
+    assert _is_fatal(embedding.MultimodalEmbeddingError(400, "bad model"))
+
+
+def test_multimodal_a_5xx_is_retried_then_succeeds(multimodal) -> None:
+    responses = [httpx.Response(500, text="boom"), httpx.Response(500, text="boom")]
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        return responses.pop(0) if responses else _mm_ok(request)
+
+    seen = multimodal(_handler)
+    assert embed_texts(["a"], _mm_params(), "passage", retries=2) == [_vector("a")]
+    assert len(seen) == 3
+
+
+def test_multimodal_a_429_is_retried(multimodal) -> None:
+    responses = [httpx.Response(429, json={"error": "slow"})]
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        return responses.pop(0) if responses else _mm_ok(request)
+
+    seen = multimodal(_handler)
+    assert embed_texts(["a"], _mm_params(), "passage", retries=1) == [_vector("a")]
+    assert len(seen) == 2
+
+
+def test_multimodal_an_empty_vector_is_an_error(multimodal) -> None:
+    seen = multimodal(lambda request: httpx.Response(200, json={"data": {}}))
+    with pytest.raises(RuntimeError, match="no vector"):
+        embed_texts(["a"], _mm_params(), "passage", retries=0)
+    assert len(seen) == 1

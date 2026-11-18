@@ -117,6 +117,43 @@ _NO_AUTH = {"Authorization": Omit()}
 _clients: dict[tuple[str, str], OpenAI] = {}
 _clients_lock = threading.Lock()
 
+# Volcengine ARK's multimodal embedding models (e.g. doubao-embedding-vision)
+# are not served on the OpenAI-compatible /embeddings route: the endpoint is
+# .../embeddings/multimodal, each input is a content block
+# ({"type": "text", "text": ...}) instead of a bare string, exactly one
+# vector comes back per HTTP request (data.embedding, not a data[] list), and
+# that vector is 2048-dimensional, matching the VDB's vector(2048) column.
+MULTIMODAL_EMBED_ROUTE = "/embeddings/multimodal"
+
+_http_clients: dict[tuple[str, str], httpx.Client] = {}
+
+
+class MultimodalEmbeddingError(Exception):
+    """A non-retryable 4xx from the multimodal embedding route."""
+
+    def __init__(self, status_code: int, message: str):
+        self.status_code = status_code
+        super().__init__(f"HTTP {status_code}: {message}")
+
+
+def is_multimodal_embedding_endpoint(endpoint: str) -> bool:
+    """Whether *endpoint* is an ARK-style ``.../embeddings/multimodal`` URL."""
+    return endpoint.rstrip("/").endswith(MULTIMODAL_EMBED_ROUTE)
+
+
+def _http_client(params: EmbedParams) -> httpx.Client:
+    """One shared httpx client per multimodal endpoint/key pair."""
+    key = (params.embed_invoke_url.rstrip("/"), params.api_key)
+    with _clients_lock:
+        client = _http_clients.get(key)
+        if client is None:
+            headers = {"Content-Type": "application/json"}
+            if params.api_key:
+                headers["Authorization"] = f"Bearer {params.api_key}"
+            client = httpx.Client(headers=headers)
+            _http_clients[key] = client
+        return client
+
 
 def _base_url(endpoint: str) -> str:
     """*endpoint* without a trailing ``/embeddings``, which the client appends.
@@ -155,6 +192,103 @@ def _text_prefix(model_name: str, input_type: InputType) -> str:
     return ""
 
 
+def _embed_one_multimodal(
+    client: httpx.Client,
+    params: EmbedParams,
+    text: str,
+    *,
+    timeout: float,
+    attempts_left: int,
+) -> list[float]:
+    """One text -> one vector via the ARK multimodal embedding route.
+
+    Retries the same transient set the OpenAI client retries (408/409/429/5xx
+    and transport errors); any other 4xx is fatal -- a bad key or model id
+    does not improve with waiting.
+    """
+    payload = {
+        "model": params.model_name,
+        # The route embeds the whole content list as a single input, so every
+        # text goes in its own HTTP request; one block keeps the shape the
+        # endpoint expects.
+        "input": [{"type": "text", "text": text}],
+        "encoding_format": "float",
+    }
+    last_exc: Exception | None = None
+    for attempt in range(attempts_left + 1):
+        try:
+            response = client.post(
+                params.embed_invoke_url.rstrip("/"), json=payload, timeout=timeout
+            )
+            if response.status_code >= 400:
+                if 400 <= response.status_code < 500 and response.status_code not in (
+                    408,
+                    409,
+                    429,
+                ):
+                    raise MultimodalEmbeddingError(
+                        response.status_code, response.text[:500]
+                    )
+                response.raise_for_status()
+            data = response.json().get("data") or {}
+            vector = data.get("embedding")
+            if not isinstance(vector, list) or not vector:
+                raise RuntimeError(
+                    "Multimodal embedding endpoint returned no vector: "
+                    f"{response.text[:300]}"
+                )
+            return [float(value) for value in vector]
+        except MultimodalEmbeddingError:
+            raise
+        except (
+            httpx.TimeoutException,
+            httpx.TransportError,
+            httpx.HTTPStatusError,
+        ) as exc:
+            last_exc = exc
+            if attempt < attempts_left:
+                time.sleep(min(0.5 * (2**attempt), 8.0))
+    assert last_exc is not None
+    raise last_exc
+
+
+def _embed_texts_multimodal(
+    texts: list[str],
+    stripped: list[str],
+    to_send: list[int],
+    params: EmbedParams,
+    *,
+    timeout: float | None,
+    retries: int | None,
+) -> list[list[float] | None]:
+    """Embed *texts* against an ARK ``.../embeddings/multimodal`` endpoint.
+
+    The route answers one vector per request, so the batch parallelism the
+    OpenAI route puts *inside* a request is spread across one request per text
+    here. Ordering and the one-vector-per-text contract are identical.
+    """
+    vectors: list[list[float] | None] = [None] * len(texts)
+    client = _http_client(params)
+    request_timeout = timeout or params.request_timeout_s
+    attempts = _REQUEST_RETRIES if retries is None else retries
+
+    def _embed(index: int) -> tuple[int, list[float]]:
+        return index, _embed_one_multimodal(
+            client,
+            params,
+            stripped[index],
+            timeout=request_timeout,
+            attempts_left=attempts,
+        )
+
+    workers = min(len(to_send), max(1, params.nim_http_max_concurrent))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        # list() so the first failed request re-raises, matching the OpenAI path.
+        for index, vector in pool.map(_embed, to_send):
+            vectors[index] = vector
+    return vectors
+
+
 def embed_texts(
     texts: list[str],
     params: EmbedParams,
@@ -177,6 +311,18 @@ def embed_texts(
     vectors: list[list[float] | None] = [None] * len(texts)
     if not to_send:
         return vectors
+
+    if is_multimodal_embedding_endpoint(params.embed_invoke_url):
+        # The multimodal route takes content blocks and answers one vector
+        # per request; input_type/prefix semantics do not apply to it.
+        return _embed_texts_multimodal(
+            texts,
+            stripped,
+            to_send,
+            params,
+            timeout=timeout,
+            retries=retries,
+        )
 
     client = _client(params)
     if retries is not None:
@@ -230,6 +376,9 @@ def _is_fatal(exc: Exception) -> bool:
     Any 4xx except 408 (timeout), 409 and 429 (rate limit): a bad key, an
     unknown model id, a wrong path. The client has already retried the rest.
     """
+    if isinstance(exc, MultimodalEmbeddingError):
+        # Raised only for non-retryable 4xx by construction.
+        return True
     return isinstance(exc, APIStatusError) and (
         400 <= exc.status_code < 500 and exc.status_code not in (408, 409, 429)
     )
