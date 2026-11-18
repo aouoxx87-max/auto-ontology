@@ -34,6 +34,8 @@ _SYSTEM = """\
 You propose business Terms for a relational table and assign candidate columns \
 to each Term with user-friendly display labels.
 
+Write each Term description as a concise business definition in Simplified Chinese, even when the source metadata is in English. Keep technical identifiers verbatim when needed.
+
 Rules:
 1. Strongly prefer ONE Term per table. A second Term is warranted ONLY when the \
 table is a true junction between two unrelated entities. Never split a single \
@@ -106,6 +108,16 @@ def apply_display_names_to_specs(
             spec.display_name = spec.name
 
 
+_HAN_CHARACTER = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
+
+
+def _term_description(description: str, table: dict[str, Any]) -> str:
+    for candidate in (description, table.get("description") or ""):
+        if _HAN_CHARACTER.search(candidate):
+            return candidate.strip()
+    return f"该业务实体对应源表 {table['name']}。"
+
+
 def _fallback_result(
     table: dict[str, Any],
     specs: list[ColumnAttributeSpec],
@@ -122,7 +134,7 @@ def _fallback_result(
         terms=[
             TermProposal(
                 name=name,
-                description=f"Business entity represented by table {table['name']}",
+                description=_term_description("", table),
                 attributes=attributes,
             )
         ]
@@ -175,7 +187,7 @@ def _sanitize_result(
         sanitized_terms.append(
             TermProposal(
                 name=term_name,
-                description=raw_term.description.strip(),
+                description=_term_description(raw_term.description, table),
                 attributes=attributes,
             )
         )

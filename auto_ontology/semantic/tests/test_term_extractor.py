@@ -6,13 +6,15 @@
 
 from __future__ import annotations
 
+import pytest
+
 from auto_ontology.semantic.models import (
     ColumnAttributeSpec,
     RawTableTermsResult,
     RawTermProposal,
     TermColumnRef,
 )
-from auto_ontology.semantic.term_extractor import _sanitize_result
+from auto_ontology.semantic.term_extractor import _sanitize_result, extract_term
 
 
 def test_sanitize_uses_llm_display_names() -> None:
@@ -94,3 +96,28 @@ def test_sanitize_assigns_orphan_specs_to_primary_term() -> None:
     }
     assert specs[0].display_name == "Total Amount"
     assert specs[1].display_name == "Order Status"
+
+
+@pytest.mark.parametrize(
+    ("model_description", "table_description", "expected"),
+    [
+        ("记录每笔采购订单。", "订单表", "记录每笔采购订单。"),
+        ("A purchase order", "采购订单明细", "采购订单明细"),
+        ("", "Order details", "该业务实体对应源表 orders。"),
+    ],
+)
+def test_compiled_term_description(
+    model_description: str, table_description: str, expected: str
+) -> None:
+    raw = RawTableTermsResult(
+        terms=[RawTermProposal(name="Order", description=model_description)]
+    )
+    result = _sanitize_result(
+        raw, table={"name": "orders", "description": table_description}, specs=[]
+    )
+    assert result.terms[0].description == expected
+
+
+def test_fallback_term_has_chinese_description() -> None:
+    result = extract_term({"name": "orders"}, {}, [])
+    assert result.terms[0].description == "该业务实体对应源表 orders。"

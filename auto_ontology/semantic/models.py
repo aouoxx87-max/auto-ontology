@@ -56,7 +56,9 @@ class RawTermProposal(BaseModel):
             "(e.g. Purchase Order)."
         ),
     )
-    description: str = Field(default="", description="Short business definition.")
+    description: str = Field(
+        default="", description="Short business definition in Simplified Chinese."
+    )
     attributes: list[TermColumnRef] = Field(
         default_factory=list,
         description=(
